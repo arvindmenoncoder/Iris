@@ -25,7 +25,7 @@
         html, body {
             margin: 0; padding: 0; width: 100vw; height: 100vh;
             background-color: var(--ios-bg); color: var(--ios-text);
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif;
             overflow: hidden; position: fixed; touch-action: none;
         }
 
@@ -82,7 +82,7 @@
         .card-front, .card-back {
             position: absolute; width: 100%; height: 100%;
             backface-visibility: hidden; border-radius: 22px;
-            padding: 24px; display: flex; flex-direction: column;
+            padding: 26px; display: flex; flex-direction: column;
             justify-content: space-between; border: 1px solid rgba(255,255,255,0.14);
             overflow: hidden;
         }
@@ -98,26 +98,31 @@
 
         /* CARD ELEMENTS */
         .card-row { display: flex; justify-content: space-between; align-items: flex-start; }
-        .card-type-label { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 2.2px; opacity: 0.65; }
+        .card-type-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 2.2px; opacity: 0.6; }
+        .card-product-name { font-size: 16px; font-weight: 700; margin-top: 2px; }
         
         .card-number-display {
-            font-family: "SF Mono", "Menlo", monospace; font-size: 26px; letter-spacing: 4px;
+            font-family: "SF Mono", "Menlo", monospace; font-size: 24px; letter-spacing: 4px;
             display: flex; align-items: center; gap: 14px; justify-content: center;
+            font-weight: 500;
         }
         
+        /* OVERLAPPING COPY ICON */
+        .copy-icon-svg { width: 16px; height: 16px; fill: currentColor; }
+
         .copy-btn {
-            background: rgba(255,255,255,0.18); border: none; padding: 7px;
-            border-radius: 10px; cursor: pointer; color: inherit; font-size: 14px;
+            background: rgba(255,255,255,0.15); border: none; padding: 8px;
+            border-radius: 10px; cursor: pointer; color: inherit;
             display: flex; align-items: center; justify-content: center;
             transition: all 0.2s;
         }
-        .copy-btn:active { background: rgba(255,255,255,0.4); transform: scale(0.9); }
+        .copy-btn:active { background: rgba(255,255,255,0.35); transform: scale(0.9); }
 
-        .card-info-group { display: flex; flex-direction: column; gap: 5px; }
-        .info-label { font-size: 10px; font-weight: 700; text-transform: uppercase; opacity: 0.55; letter-spacing: 0.6px; }
-        .info-value { font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+        .card-info-group { display: flex; flex-direction: column; gap: 4px; }
+        .info-label { font-size: 9px; font-weight: 800; text-transform: uppercase; opacity: 0.5; letter-spacing: 0.8px; }
+        .info-value { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
 
-        /* 5. MODERN SCANNER */
+        /* 5. MODERN SCANNER & ANALYZER ANIMATION */
         .overlay {
             position: fixed; inset: 0; background: rgba(0,0,0,0.98); z-index: 2000;
             display: none; flex-direction: column; padding: var(--safe-top) 24px;
@@ -135,6 +140,20 @@
         }
         .camera-trigger div { width: 68px; height: 68px; background: #fff; border-radius: 50%; transition: transform 0.2s; }
         .camera-trigger:active div { transform: scale(0.85); }
+
+        /* SCANNING BEAM ANIMATION */
+        .scan-beam {
+            position: absolute; top: -100%; left: 0; width: 100%; height: 40%;
+            background: linear-gradient(to bottom, transparent, rgba(90, 50, 250, 0.5), transparent);
+            z-index: 5; pointer-events: none;
+            display: none;
+            animation: beamMove 2.5s infinite linear;
+        }
+        @keyframes beamMove {
+            0% { top: -40%; }
+            100% { top: 100%; }
+        }
+        .scanning .scan-beam { display: block; }
 
         /* 6. DYNAMIC ISLAND NOTIFICATION */
         .status-pill {
@@ -182,6 +201,7 @@
         
         <div style="flex:1; display:flex; justify-content:center; align-items:center;">
             <div id="scanPreview" style="width:100%; aspect-ratio:1.586; border: 3px solid var(--ios-accent); border-radius:24px; background: #000; display:flex; align-items:center; justify-content:center; overflow:hidden; position: relative; box-shadow: 0 0 40px rgba(90, 50, 250, 0.4);">
+                <div class="scan-beam"></div>
                 <video id="videoViewfinder" autoplay playsinline muted></video>
                 <canvas id="snapshotCanvas" style="display:none;"></canvas>
             </div>
@@ -204,6 +224,7 @@
         const walletStack = document.getElementById('walletStack');
         const scannerOverlay = document.getElementById('scannerOverlay');
         const scanStepText = document.getElementById('scanStepText');
+        const scanPreview = document.getElementById('scanPreview');
         const video = document.getElementById('videoViewfinder');
         const canvas = document.getElementById('snapshotCanvas');
 
@@ -211,6 +232,9 @@
         let scanSession = { step: 0, front: null, back: null };
         let activeCardId = null;
         let stream = null;
+
+        // COPY ICON SVG TEMPLATE
+        const copyIcon = `<svg class="copy-icon-svg" viewBox="0 0 24 24"><path d="M16 1H4C2.9 1 2 1.9 2 3V17H4V3H16V1ZM19 5H8C6.9 5 6 5.9 6 7V21C6 22.1 6.9 23 8 23H19C20.1 23 21 22.1 21 21V7C21 5.9 20.1 5 19 5ZM19 21H8V7H19V21Z"/></svg>`;
 
         // 1. DB INIT
         const req = indexedDB.open("IrisWalletV3", 1);
@@ -232,6 +256,7 @@
             if(!localStorage.getItem('iris_key')) return toggleKey();
             scanSession = { step: 0, front: null, back: null };
             scanStepText.innerText = "Scan Front of Card";
+            scanPreview.classList.remove('scanning');
             try {
                 stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } } 
@@ -270,19 +295,19 @@
         async function processCard() {
             const front = scanSession.front;
             const back = scanSession.back;
-            closeScanner();
+            scanPreview.classList.add('scanning');
             showStatus("Iris AI Extracting Data...", "processing");
             
             const key = localStorage.getItem('iris_key');
             try {
-                // UPDATE: Using the April 2026 stable Flash-Lite endpoint
+                // Improved prompt for specific naming
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${key}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         contents: [{
                             parts: [
-                                { text: "Extract card data. Return ONLY JSON. Keys: type(PAN Card, Aadhar Card, Credit Card, Voter ID, ID Card), number, name, dob, expiry. If missing use NULL." },
+                                { text: "Act as an expert OCR. Extract data from this ID. Return ONLY JSON. Keys: type(The broad category, e.g., 'Credit Card'), product(The specific name, e.g., 'Flipkart Axis Bank Credit Card' or 'HDFC Regalia'), number, name, dob, expiry. If specific product name is unclear, use type as product. If missing use NULL." },
                                 { inline_data: { mime_type: "image/jpeg", data: front.split(',')[1] } }
                             ]
                         }]
@@ -299,8 +324,13 @@
                 const newCard = { id: Date.now(), ...parsed, frontImg: front, backImg: back };
                 const tx = db.transaction("cards", "readwrite");
                 tx.objectStore("cards").add(newCard);
-                tx.oncomplete = () => { showStatus("Card Secured", "success"); renderWallet(); };
+                tx.oncomplete = () => { 
+                    closeScanner();
+                    showStatus("Card Secured", "success"); 
+                    renderWallet(); 
+                };
             } catch (err) {
+                scanPreview.classList.remove('scanning');
                 showStatus("AI Error: " + err.message, "error");
             }
         }
@@ -323,18 +353,28 @@
                     el.innerHTML = `
                         <div class="card-inner" onclick="handleCardClick(this, ${c.id})">
                             <div class="card-front ${theme}">
-                                <div class="card-row"><div class="card-type-label">${c.type}</div><div style="font-size:24px; opacity:0.8;">✦</div></div>
-                                <div class="card-number-display">${c.number || '•••• •••• ••••'}<button class="copy-btn" onclick="copyText('${c.number}', event)">📋</button></div>
                                 <div class="card-row">
-                                    <div class="card-info-group"><div class="info-label">Card Holder</div><div class="info-value">${c.name || 'CITIZEN'}<button class="copy-btn" onclick="copyText('${c.name}', event)">📋</button></div></div>
-                                    <div class="card-info-group" style="text-align:right"><div class="info-label">Expiry / DOB</div><div class="info-value">${c.expiry || c.dob || '--/--'}</div></div>
+                                    <div>
+                                        <div class="card-type-label">${c.type}</div>
+                                        <div class="card-product-name">${c.product || c.type}</div>
+                                    </div>
+                                    <div style="font-size:24px; opacity:0.8;">✦</div>
+                                </div>
+                                <div class="card-number-display">${c.number || '•••• •••• ••••'}<button class="copy-btn" onclick="copyText('${c.number}', event)">${copyIcon}</button></div>
+                                <div class="card-row">
+                                    <div class="card-info-group">
+                                        <div class="info-label">Card Holder</div>
+                                        <div class="info-value">${c.name || 'CITIZEN'}<button class="copy-btn" onclick="copyText('${c.name}', event)">${copyIcon}</button></div>
+                                    </div>
+                                    <div class="card-info-group" style="text-align:right">
+                                        <div class="info-label">Expiry / DOB</div>
+                                        <div class="info-value">${c.expiry || c.dob || '--/--'}</div>
+                                    </div>
                                 </div>
                                 <div onclick="deleteCard(${c.id}, event)" style="position:absolute; bottom:14px; right:16px; opacity:0.4; font-size:11px; font-weight:800; letter-spacing:0.8px;">✕ REMOVE</div>
                             </div>
                             <div class="card-back" style="background-image:url(${c.backImg}); background-size:cover; background-position:center;">
-                                <div style="background:rgba(0,0,0,0.55); width:100%; height:100%; padding:24px; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;">
-                                    <div class="card-type-label" style="color:white; margin-bottom:12px;">Back Side Analysis</div>
-                                    <div style="font-size:13px; opacity:0.8; font-weight:500;">Press & hold to flip back</div>
+                                <div class="back-overlay" style="background:rgba(0,0,0,0.3); width:100%; height:100%; padding:24px; backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;">
                                 </div>
                             </div>
                         </div>
@@ -375,6 +415,7 @@
 
         function copyText(text, e) {
             e.stopPropagation();
+            if(!text || text === "null") return;
             const el = document.createElement('textarea');
             el.value = text;
             el.setAttribute('readonly', '');
