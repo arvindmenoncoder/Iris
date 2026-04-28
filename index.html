@@ -19,128 +19,143 @@
             --safe-bottom: env(safe-area-inset-bottom, 34px);
         }
 
-        /* 1. LOCKDOWN UI (NO SCROLLING/SHIFTING) */
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        /* 1. NATIVE LOCKDOWN */
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
         
         html, body {
             margin: 0; padding: 0; width: 100vw; height: 100vh;
             background-color: var(--ios-bg); color: var(--ios-text);
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
-            overflow: hidden; position: fixed; 
-            touch-action: none;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+            overflow: hidden; position: fixed; touch-action: none;
         }
 
-        /* 2. MAIN LAYOUT */
         .app-shell {
             display: flex; flex-direction: column; width: 100%; height: 100%;
         }
 
+        /* 2. PREMIUM HEADER */
         .header {
-            padding: calc(var(--safe-top) + 20px) 24px 16px;
+            padding: calc(var(--safe-top) + 12px) 24px 12px;
             display: flex; justify-content: space-between; align-items: center;
-            z-index: 1000; background: rgba(0,0,0,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            z-index: 1000; background: rgba(0,0,0,0.7); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
         }
 
-        .header h1 { margin: 0; font-size: 34px; font-weight: 700; letter-spacing: -1px; }
+        .header h1 { margin: 0; font-size: 32px; font-weight: 800; letter-spacing: -1.2px; }
 
-        .header-actions { display: flex; gap: 16px; }
+        .header-actions { display: flex; gap: 14px; }
         .icon-btn {
             background: var(--ios-surface); border: none; color: var(--ios-accent);
-            width: 38px; height: 38px; border-radius: 50%;
+            width: 42px; height: 42px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            font-size: 20px; cursor: pointer;
+            font-size: 20px; cursor: pointer; transition: transform 0.2s cubic-bezier(0.1, 0.9, 0.2, 1);
         }
+        .icon-btn:active { transform: scale(0.88); opacity: 0.7; }
 
+        /* 3. WALLET STACK */
         .scroll-container {
-            flex: 1; overflow-y: auto; overflow-x: hidden;
-            padding: 16px 20px 100px; -webkit-overflow-scrolling: touch;
+            flex: 1; overflow-y: scroll; overflow-x: hidden;
+            padding: 20px 20px 120px; -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
         }
         .scroll-container::-webkit-scrollbar { display: none; }
 
-        /* 3. CARD STACKING & ANIMATION */
         .wallet-stack { display: flex; flex-direction: column; width: 100%; position: relative; }
 
         .card-wrapper {
-            position: relative; width: 100%; margin-bottom: -130px;
-            transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
-            perspective: 1000px; z-index: var(--zi);
+            position: relative; width: 100%; margin-bottom: -145px;
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            perspective: 1500px; z-index: var(--zi);
         }
 
-        .card-wrapper.active { margin-bottom: 20px; transform: translateY(-10px); }
-        .card-wrapper.active ~ .card-wrapper { transform: translateY(180px); }
+        .card-wrapper.active { margin-bottom: 24px; transform: translateY(-12px) scale(1.03); z-index: 1000 !important; }
+        .card-wrapper.active ~ .card-wrapper { transform: translateY(220px); }
 
-        /* 4. FLIP PHYSICS */
+        /* 4. 3D FLIP MECHANICS */
         .card-inner {
             width: 100%; aspect-ratio: 1.586; position: relative;
-            transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-            border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            transform-style: preserve-3d; transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border-radius: 22px; box-shadow: 0 12px 45px rgba(0,0,0,0.8);
         }
 
         .card-wrapper.flipped .card-inner { transform: rotateY(180deg); }
 
         .card-front, .card-back {
             position: absolute; width: 100%; height: 100%;
-            backface-visibility: hidden; border-radius: 16px;
+            backface-visibility: hidden; border-radius: 22px;
             padding: 24px; display: flex; flex-direction: column;
-            justify-content: space-between; border: 1px solid rgba(255,255,255,0.1);
+            justify-content: space-between; border: 1px solid rgba(255,255,255,0.14);
             overflow: hidden;
         }
 
-        .card-back { transform: rotateY(180deg); background: #2c2c2e; }
+        .card-back { transform: rotateY(180deg); background: #1c1c1e; }
 
         /* THEMES */
         .theme-pan { background: linear-gradient(135deg, #eef2f3 0%, #8e9eab 100%); color: #1c1c1e; }
-        .theme-aadhar { background: #fff; color: #1c1c1e; border-top: 8px solid #E43D30; }
-        .theme-credit { background: linear-gradient(135deg, #232526 0%, #414345 100%); color: #fff; }
-        .theme-voter { background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); color: #fff; }
-        .theme-generic { background: #2c2c2e; color: #fff; }
+        .theme-aadhar { background: #ffffff; color: #1c1c1e; border-top: 10px solid #E43D30; }
+        .theme-credit { background: linear-gradient(135deg, #141e30 0%, #243b55 100%); color: #ffffff; }
+        .theme-voter { background: linear-gradient(135deg, #5f2c82 0%, #49a09d 100%); color: #ffffff; }
+        .theme-generic { background: #2c2c2e; color: #ffffff; }
 
-        /* CARD CONTENT UI */
+        /* CARD ELEMENTS */
         .card-row { display: flex; justify-content: space-between; align-items: flex-start; }
-        .card-type-label { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.8; }
+        .card-type-label { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 2.2px; opacity: 0.65; }
         
         .card-number-display {
-            font-family: "SF Mono", monospace; font-size: 24px; letter-spacing: 3px;
-            display: flex; align-items: center; gap: 10px; justify-content: center;
+            font-family: "SF Mono", "Menlo", monospace; font-size: 26px; letter-spacing: 4px;
+            display: flex; align-items: center; gap: 14px; justify-content: center;
         }
         
         .copy-btn {
-            background: rgba(255,255,255,0.15); border: none; padding: 6px;
-            border-radius: 6px; cursor: pointer; color: inherit; font-size: 12px;
+            background: rgba(255,255,255,0.18); border: none; padding: 7px;
+            border-radius: 10px; cursor: pointer; color: inherit; font-size: 14px;
             display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
         }
+        .copy-btn:active { background: rgba(255,255,255,0.4); transform: scale(0.9); }
 
-        .card-info-group { display: flex; flex-direction: column; gap: 4px; }
-        .info-label { font-size: 9px; font-weight: 600; text-transform: uppercase; opacity: 0.6; }
-        .info-value { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .card-info-group { display: flex; flex-direction: column; gap: 5px; }
+        .info-label { font-size: 10px; font-weight: 700; text-transform: uppercase; opacity: 0.55; letter-spacing: 0.6px; }
+        .info-value { font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
 
-        /* 5. OVERLAY UI */
+        /* 5. MODERN SCANNER */
         .overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 2000;
+            position: fixed; inset: 0; background: rgba(0,0,0,0.98); z-index: 2000;
             display: none; flex-direction: column; padding: var(--safe-top) 24px;
         }
-        .overlay.active { display: flex; }
+        .overlay.active { display: flex; animation: iosPop 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
 
-        .scanner-instruction { text-align: center; font-size: 20px; font-weight: 600; margin: 40px 0; }
+        @keyframes iosPop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        .scanner-instruction { text-align: center; font-size: 24px; font-weight: 700; margin: 30px 0; color: #fff; letter-spacing: -0.5px; }
         
         .camera-trigger {
-            width: 80px; height: 80px; border-radius: 50%; border: 4px solid #fff;
-            margin: auto auto 40px; display: flex; align-items: center; justify-content: center;
+            width: 86px; height: 86px; border-radius: 50%; border: 4px solid #fff;
+            margin: auto auto 60px; display: flex; align-items: center; justify-content: center;
             cursor: pointer;
         }
-        .camera-trigger div { width: 64px; height: 64px; background: #fff; border-radius: 50%; }
+        .camera-trigger div { width: 68px; height: 68px; background: #fff; border-radius: 50%; transition: transform 0.2s; }
+        .camera-trigger:active div { transform: scale(0.85); }
 
+        /* 6. DYNAMIC ISLAND NOTIFICATION */
         .status-pill {
-            background: var(--ios-accent); color: white; padding: 12px 24px;
-            border-radius: 24px; font-weight: 600; text-align: center;
-            position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
-            display: none; box-shadow: 0 10px 30px rgba(90, 50, 250, 0.4);
-            z-index: 3000;
+            position: fixed; top: calc(var(--safe-top) + 10px); left: 50%; transform: translateX(-50%) translateY(-120px);
+            background: rgba(30, 30, 32, 0.9); color: #fff; padding: 12px 28px;
+            border-radius: 40px; font-weight: 600; text-align: center;
+            backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            z-index: 6000; font-size: 14px; border: 1px solid rgba(255,255,255,0.12);
+            transition: all 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+            display: flex; align-items: center; gap: 12px; opacity: 0;
+            pointer-events: none;
         }
+        .status-pill.visible { transform: translateX(-50%) translateY(0); opacity: 1; }
+        .status-pill.error { border-color: rgba(255, 59, 48, 0.4); }
+        .status-pill.success { border-color: rgba(90, 50, 250, 0.4); }
 
-        #videoViewfinder {
-            width: 100%; height: 100%; object-fit: cover;
-        }
+        #videoViewfinder { width: 100%; height: 100%; object-fit: cover; }
+        .dot { width: 8px; height: 8px; background: var(--ios-accent); border-radius: 50%; }
+        .dot.pulse { animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.4); } }
     </style>
 </head>
 <body>
@@ -150,9 +165,7 @@
             <h1>Iris Wallet</h1>
             <div class="header-actions">
                 <button class="icon-btn" onclick="toggleKey()">🔑</button>
-                <div class="add-btn-container">
-                    <button class="icon-btn" onclick="startScanning()">＋</button>
-                </div>
+                <button class="icon-btn" onclick="startScanning()">＋</button>
             </div>
         </header>
 
@@ -161,15 +174,14 @@
         </div>
     </div>
 
-    <!-- SCANNER OVERLAY -->
     <div id="scannerOverlay" class="overlay">
         <div style="display:flex; justify-content: flex-end;">
-            <button class="icon-btn" onclick="closeScanner()" style="background:none; font-size: 30px; color: white;">✕</button>
+            <button class="icon-btn" onclick="closeScanner()" style="background:none; font-size: 32px;">✕</button>
         </div>
         <div id="scanStepText" class="scanner-instruction">Scan Front of Card</div>
         
-        <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-            <div id="scanPreview" style="width:100%; aspect-ratio:1.586; border: 2px solid var(--ios-accent); border-radius:16px; background: #000; display:flex; align-items:center; justify-content:center; overflow:hidden; position: relative;">
+        <div style="flex:1; display:flex; justify-content:center; align-items:center;">
+            <div id="scanPreview" style="width:100%; aspect-ratio:1.586; border: 3px solid var(--ios-accent); border-radius:24px; background: #000; display:flex; align-items:center; justify-content:center; overflow:hidden; position: relative; box-shadow: 0 0 40px rgba(90, 50, 250, 0.4);">
                 <video id="videoViewfinder" autoplay playsinline muted></video>
                 <canvas id="snapshotCanvas" style="display:none;"></canvas>
             </div>
@@ -180,10 +192,15 @@
         </div>
     </div>
 
-    <div id="statusPill" class="status-pill">Processing...</div>
+    <div id="statusPill" class="status-pill">
+        <div class="dot pulse" id="statusDot"></div>
+        <span id="statusText">Processing...</span>
+    </div>
 
     <script>
         const statusPill = document.getElementById('statusPill');
+        const statusText = document.getElementById('statusText');
+        const statusDot = document.getElementById('statusDot');
         const walletStack = document.getElementById('walletStack');
         const scannerOverlay = document.getElementById('scannerOverlay');
         const scanStepText = document.getElementById('scanStepText');
@@ -195,160 +212,129 @@
         let activeCardId = null;
         let stream = null;
 
-        // 1. DATABASE INIT
-        const req = indexedDB.open("IrisWalletV2", 1);
-        req.onupgradeneeded = e => {
-            e.target.result.createObjectStore("cards", { keyPath: "id" });
-        };
+        // 1. DB INIT
+        const req = indexedDB.open("IrisWalletV3", 1);
+        req.onupgradeneeded = e => { e.target.result.createObjectStore("cards", { keyPath: "id" }); };
         req.onsuccess = e => { db = e.target.result; renderWallet(); };
 
-        // 2. API KEY HELPERS
+        // 2. KEY LOGIC
         function toggleKey() {
             const currentKey = localStorage.getItem('iris_key');
-            const key = prompt("Enter Gemini API Key:", currentKey || "");
+            const key = prompt("Enter Gemini API Key (April 2026 Update):", currentKey || "");
             if(key !== null) {
                 localStorage.setItem('iris_key', key.trim());
-                showStatus("Gemini Model Connected");
+                showStatus("Gemini Model Connected", "success");
             }
         }
 
-        // 3. SCANNING FLOW
+        // 3. SCANNING
         async function startScanning() {
             if(!localStorage.getItem('iris_key')) return toggleKey();
-            
             scanSession = { step: 0, front: null, back: null };
             scanStepText.innerText = "Scan Front of Card";
-            
             try {
                 stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } } 
+                    video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } } 
                 });
                 video.srcObject = stream;
                 scannerOverlay.classList.add('active');
             } catch (err) {
-                showStatus("Camera access denied.");
-                console.error(err);
+                showStatus("Enable Camera Permissions", "error");
             }
         }
 
         function closeScanner() {
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-            }
+            if (stream) stream.getTracks().forEach(track => track.stop());
             scannerOverlay.classList.remove('active');
         }
 
         function captureSnapshot() {
-            // Set canvas dimensions to match video
+            if (!video.videoWidth) return;
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            const imageData = canvas.toDataURL('image/jpeg', 0.8);
+            const data = canvas.toDataURL('image/jpeg', 0.9);
 
             if(scanSession.step === 0) {
-                scanSession.front = imageData;
+                scanSession.front = data;
                 scanSession.step = 1;
                 scanStepText.innerText = "Scan Back of Card";
-                showStatus("Front Captured");
+                showStatus("Front Captured", "success");
             } else {
-                scanSession.back = imageData;
+                scanSession.back = data;
                 processCard();
             }
         }
 
         async function processCard() {
-            const frontImage = scanSession.front;
-            const backImage = scanSession.back;
+            const front = scanSession.front;
+            const back = scanSession.back;
             closeScanner();
-            showStatus("Analyzing with Gemini AI...");
+            showStatus("Iris AI Extracting Data...", "processing");
             
-            const apiKey = localStorage.getItem('iris_key');
+            const key = localStorage.getItem('iris_key');
             try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+                // UPDATE: Using the April 2026 stable Flash-Lite endpoint
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${key}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         contents: [{
                             parts: [
-                                { text: "Extract card data into JSON. Reply ONLY with JSON. Keys: type(PAN, Aadhar, Credit, Voter, ID), number, name, dob, expiry. Use NULL if missing." },
-                                { inline_data: { mime_type: "image/jpeg", data: frontImage.split(',')[1] } }
+                                { text: "Extract card data. Return ONLY JSON. Keys: type(PAN Card, Aadhar Card, Credit Card, Voter ID, ID Card), number, name, dob, expiry. If missing use NULL." },
+                                { inline_data: { mime_type: "image/jpeg", data: front.split(',')[1] } }
                             ]
                         }]
                     })
                 });
 
-                const res = await response.json();
-                if (!res.candidates) throw new Error("API Limit or Key Error");
+                const data = await res.json();
+                if (data.error) throw new Error(data.error.message);
                 
-                let jsonText = res.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
-                const data = JSON.parse(jsonText);
+                let raw = data.candidates[0].content.parts[0].text;
+                raw = raw.replace(/```json|```/g, '').trim();
+                const parsed = JSON.parse(raw);
 
-                const newCard = {
-                    id: Date.now(),
-                    ...data,
-                    frontImg: frontImage,
-                    backImg: backImage
-                };
-
+                const newCard = { id: Date.now(), ...parsed, frontImg: front, backImg: back };
                 const tx = db.transaction("cards", "readwrite");
                 tx.objectStore("cards").add(newCard);
-                tx.oncomplete = () => {
-                    showStatus("Card Added Successfully");
-                    renderWallet();
-                };
+                tx.oncomplete = () => { showStatus("Card Secured", "success"); renderWallet(); };
             } catch (err) {
-                console.error(err);
-                showStatus("Scanning Failed. Try again.");
+                showStatus("AI Error: " + err.message, "error");
             }
         }
 
-        // 4. RENDERING & UI LOGIC
+        // 4. RENDERING
         function renderWallet() {
             walletStack.innerHTML = '';
             const tx = db.transaction("cards", "readonly");
             tx.objectStore("cards").getAll().onsuccess = e => {
-                const cards = e.target.result.reverse();
+                const cards = e.target.result.sort((a,b) => b.id - a.id);
                 if(cards.length === 0) {
-                    walletStack.innerHTML = `<div style="text-align:center; padding-top:100px; color:var(--ios-text-secondary)">Your wallet is empty.<br>Tap + to scan a card.</div>`;
+                    walletStack.innerHTML = `<div style="text-align:center; padding-top:140px; color:var(--ios-text-secondary); font-size:17px; font-weight:600;">Secure Your Digital Identity<br><span style="font-size:14px; opacity:0.6; font-weight:400;">Tap ＋ to scan your first card.</span></div>`;
                     return;
                 }
                 cards.forEach((c, idx) => {
-                    const cardTheme = getThemeClass(c.type);
+                    const theme = getThemeClass(c.type);
                     const el = document.createElement('div');
                     el.className = 'card-wrapper';
                     el.style.setProperty('--zi', cards.length - idx);
                     el.innerHTML = `
                         <div class="card-inner" onclick="handleCardClick(this, ${c.id})">
-                            <div class="card-front ${cardTheme}">
+                            <div class="card-front ${theme}">
+                                <div class="card-row"><div class="card-type-label">${c.type}</div><div style="font-size:24px; opacity:0.8;">✦</div></div>
+                                <div class="card-number-display">${c.number || '•••• •••• ••••'}<button class="copy-btn" onclick="copyText('${c.number}', event)">📋</button></div>
                                 <div class="card-row">
-                                    <div class="card-type-label">${c.type}</div>
-                                    <div style="font-size:24px">✦</div>
+                                    <div class="card-info-group"><div class="info-label">Card Holder</div><div class="info-value">${c.name || 'CITIZEN'}<button class="copy-btn" onclick="copyText('${c.name}', event)">📋</button></div></div>
+                                    <div class="card-info-group" style="text-align:right"><div class="info-label">Expiry / DOB</div><div class="info-value">${c.expiry || c.dob || '--/--'}</div></div>
                                 </div>
-                                <div class="card-number-display">
-                                    ${c.number || '•••• •••• ••••'}
-                                    <button class="copy-btn" onclick="copyText('${c.number}', event)">📋</button>
-                                </div>
-                                <div class="card-row">
-                                    <div class="card-info-group">
-                                        <div class="info-label">Card Holder</div>
-                                        <div class="info-value">
-                                            ${c.name || 'CITIZEN'}
-                                            <button class="copy-btn" onclick="copyText('${c.name}', event)">📋</button>
-                                        </div>
-                                    </div>
-                                    <div class="card-info-group" style="text-align:right">
-                                        <div class="info-label">Expiry / DOB</div>
-                                        <div class="info-value">${c.expiry || c.dob || '--/--'}</div>
-                                    </div>
-                                </div>
-                                <div onclick="deleteCard(${c.id}, event)" style="position:absolute; bottom:10px; right:15px; opacity:0.4; font-size:11px; color:inherit; font-weight:bold;">✕ REMOVE</div>
+                                <div onclick="deleteCard(${c.id}, event)" style="position:absolute; bottom:14px; right:16px; opacity:0.4; font-size:11px; font-weight:800; letter-spacing:0.8px;">✕ REMOVE</div>
                             </div>
                             <div class="card-back" style="background-image:url(${c.backImg}); background-size:cover; background-position:center;">
-                                <div style="background:rgba(0,0,0,0.4); width:100%; height:100%; padding:20px; backdrop-filter:blur(4px); display:flex; flex-direction:column; justify-content:center; align-items:center;">
-                                    <div class="card-type-label" style="color:white; margin-bottom:10px;">REVERSE SIDE</div>
-                                    <div style="font-size:12px; opacity:0.9; text-align:center;">Tapping while active flips the card.</div>
+                                <div style="background:rgba(0,0,0,0.55); width:100%; height:100%; padding:24px; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;">
+                                    <div class="card-type-label" style="color:white; margin-bottom:12px;">Back Side Analysis</div>
+                                    <div style="font-size:13px; opacity:0.8; font-weight:500;">Press & hold to flip back</div>
                                 </div>
                             </div>
                         </div>
@@ -359,27 +345,23 @@
         }
 
         function handleCardClick(inner, id) {
-            const wrapper = inner.parentElement;
-            
-            if(wrapper.classList.contains('active')) {
-                if(activeCardId === id) {
-                    wrapper.classList.toggle('flipped');
-                } else {
-                    activeCardId = id;
-                }
+            const wrap = inner.parentElement;
+            if(wrap.classList.contains('active')) {
+                if(activeCardId === id) wrap.classList.toggle('flipped');
+                else activeCardId = id;
             } else {
                 document.querySelectorAll('.card-wrapper').forEach(w => w.classList.remove('active', 'flipped'));
-                wrapper.classList.add('active');
+                wrap.classList.add('active');
                 activeCardId = id;
             }
         }
 
         function deleteCard(id, e) {
             e.stopPropagation();
-            if(!confirm("Delete this card permanently?")) return;
+            if(!confirm("Delete permanently?")) return;
             const tx = db.transaction("cards", "readwrite");
             tx.objectStore("cards").delete(id);
-            tx.oncomplete = () => renderWallet();
+            tx.oncomplete = () => { showStatus("Card Erased", "success"); renderWallet(); };
         }
 
         function getThemeClass(type) {
@@ -396,27 +378,20 @@
             const el = document.createElement('textarea');
             el.value = text;
             el.setAttribute('readonly', '');
-            el.style.position = 'absolute';
-            el.style.left = '-9999px';
-            document.body.appendChild(el);
-            el.select();
-            document.execCommand('copy');
-            document.body.removeChild(el);
-            showStatus("Copied to clipboard");
+            el.style.position = 'fixed'; el.style.opacity = '0';
+            document.body.appendChild(el); el.select();
+            document.execCommand('copy'); document.body.removeChild(el);
+            showStatus("Copied to Clipboard", "success");
         }
 
-        function showStatus(msg) {
-            statusPill.innerText = msg;
-            statusPill.style.display = 'block';
-            setTimeout(() => { statusPill.style.display = 'none'; }, 2500);
+        function showStatus(msg, type = "processing") {
+            statusText.innerText = msg;
+            statusPill.className = "status-pill visible " + type;
+            statusDot.className = "dot " + (type === "processing" ? "pulse" : "");
+            if (type !== "processing") setTimeout(() => statusPill.classList.remove('visible'), 3000);
         }
 
-        // PREVENT BOUNCY SCROLLING ON IOS EXCEPT SCROLL CONTAINER
-        document.addEventListener('touchmove', function(e) {
-            if (e.target.closest('#scrollContainer')) return;
-            e.preventDefault();
-        }, { passive: false });
-
+        document.addEventListener('touchmove', e => { if (!e.target.closest('#scrollContainer')) e.preventDefault(); }, { passive: false });
     </script>
 </body>
 </html>
