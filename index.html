@@ -3,60 +3,159 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="My PWA">
+    <meta name="apple-mobile-web-app-title" content="Iris">
     <link rel="apple-touch-icon" href="icon.png">
-    
     <link rel="manifest" href="manifest.json">
+    <title>Iris - Digital Wallet</title>
     
-    <title>My Test App</title>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #000000; /* Dark mode for modern look */
+            color: white;
+            margin: 0;
+            padding: 20px;
+            padding-top: 60px; /* Safe area for iPhone notch/Dynamic Island */
+        }
+        h1 { text-align: center; font-size: 28px; margin-bottom: 30px; }
+        
+        /* The Camera Button */
+        .scan-btn-container {
+            position: relative;
             display: flex;
             justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f0f0f5;
+            margin-bottom: 40px;
         }
-        .card {
-            background: white;
-            padding: 2rem;
-            border-radius: 16px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        .scan-btn {
+            background: linear-gradient(135deg, #5A32FA, #D05CFF);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            box-shadow: 0 8px 20px rgba(90, 50, 250, 0.4);
+            cursor: pointer;
+            width: 80%;
             text-align: center;
         }
-        button {
-            background: #007aff;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 16px;
+        /* Invisible file input overlaid on the button */
+        input[type="file"] {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        /* The Digital Card Design */
+        .digital-card {
+            background: linear-gradient(135deg, #2c2c2e, #1c1c1e);
+            border-radius: 16px;
+            padding: 20px;
             margin-top: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 1px solid #3a3a3c;
+            display: none; /* Hidden until a card is scanned */
+            flex-direction: column;
+            gap: 15px;
+        }
+        .card-header {
+            font-size: 14px;
+            color: #8e8e93;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .card-number {
+            font-size: 22px;
+            font-family: monospace;
+            letter-spacing: 2px;
+        }
+        .card-name {
+            font-size: 18px;
+            font-weight: 500;
+        }
+        
+        /* Loading Status */
+        #status {
+            text-align: center;
+            color: #D05CFF;
+            font-size: 16px;
+            margin-top: 10px;
+            min-height: 20px;
         }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <h1>Hello iPhone! 👋</h1>
-        <p>If you added this to your Home Screen,<br>there should be no Safari UI.</p>
-        <button onclick="alert('App is working perfectly!')">Test Button</button>
+    <h1>Iris Wallet</h1>
+
+    <div class="scan-btn-container">
+        <div class="scan-btn">📸 Scan New Card</div>
+        <input type="file" accept="image/*" capture="environment" id="cameraInput">
+    </div>
+
+    <div id="status"></div>
+
+    <div class="digital-card" id="digitalCard">
+        <div class="card-header" id="cardType">Generic ID Card</div>
+        <div class="card-number" id="cardNumber">XXXX XXXX XXXX</div>
+        <div class="card-name" id="cardName">SCANNING...</div>
     </div>
 
     <script>
-        // Register the Service Worker for offline support
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log('Service Worker Registered!', reg))
-                    .catch(err => console.error('Service Worker Registration Failed!', err));
-            });
-        }
+        const cameraInput = document.getElementById('cameraInput');
+        const statusText = document.getElementById('status');
+        const digitalCard = document.getElementById('digitalCard');
+        const cardTypeText = document.getElementById('cardType');
+        const cardNumberText = document.getElementById('cardNumber');
+        const cardNameText = document.getElementById('cardName');
+
+        cameraInput.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // 1. Show the UI
+            digitalCard.style.display = 'flex';
+            statusText.innerText = "Analyzing image via AI...";
+            cardNumberText.innerText = "Processing...";
+            cardNameText.innerText = "Please wait...";
+
+            try {
+                // 2. Run Tesseract OCR on the image
+                const result = await Tesseract.recognize(file, 'eng', {
+                    logger: m => {
+                        if(m.status === 'recognizing text') {
+                            statusText.innerText = `Scanning: ${Math.round(m.progress * 100)}%`;
+                        }
+                    }
+                });
+
+                const extractedText = result.data.text;
+                statusText.innerText = "Scan Complete!";
+                
+                // 3. Process the Data (Basic Example)
+                // In a production app, we would use complex Regular Expressions to find specific ID formats.
+                // For now, we will grab the first few non-empty lines to populate the card.
+                const lines = extractedText.split('\n').filter(line => line.trim().length > 3);
+                
+                if (lines.length >= 2) {
+                    cardTypeText.innerText = lines[0].substring(0, 20).toUpperCase(); // Assume line 1 is issuing authority
+                    cardNumberText.innerText = lines[1].substring(0, 25); // Assume line 2 has the ID number
+                    cardNameText.innerText = lines[2] ? lines[2].substring(0, 20) : "Name Not Found";
+                } else {
+                    cardNumberText.innerText = "Could not read text clearly.";
+                    cardNameText.innerText = "Please try scanning again in better light.";
+                }
+
+            } catch (error) {
+                console.error(error);
+                statusText.innerText = "Error scanning card.";
+            }
+        });
     </script>
 </body>
 </html>
