@@ -5,78 +5,105 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Iris">
+    <meta name="apple-mobile-web-app-title" content="Iris Wallet">
+    <link rel="apple-touch-icon" href="icon.png">
     <title>Iris Wallet</title>
     
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-
     <style>
-        /* 1. NATIVE APP LOCKDOWN - Prevents bouncing and horizontal scrolling */
+        /* 1. NATIVE APP LOCKDOWN */
         html, body {
             margin: 0; padding: 0; width: 100%; height: 100%;
             background-color: #000000; color: #FFFFFF;
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
-            overflow: hidden; /* Stops whole page from moving */
-            overscroll-behavior-y: none; /* Stops pull-to-refresh bounce */
-            position: fixed; /* Locks the body entirely */
+            overflow: hidden; overscroll-behavior-y: none; position: fixed;
         }
 
-        /* 2. SCROLLABLE CONTAINER */
         .app-container {
             width: 100%; height: 100%;
-            overflow-y: auto; /* Only this container scrolls */
-            -webkit-overflow-scrolling: touch; /* Smooth iOS scrolling */
-            padding-bottom: 50px;
+            overflow-y: auto; -webkit-overflow-scrolling: touch;
+            padding-bottom: 80px;
         }
 
+        /* 2. HEADER & CONTROLS */
         .header {
             padding: calc(env(safe-area-inset-top, 47px) + 20px) 24px 20px;
             display: flex; justify-content: space-between; align-items: flex-end;
             background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            position: sticky; top: 0; z-index: 100;
+            position: sticky; top: 0; z-index: 100; border-bottom: 0.5px solid rgba(255,255,255,0.1);
         }
-        .header h1 { margin: 0; font-size: 34px; font-weight: 700; }
+        .header h1 { margin: 0; font-size: 34px; font-weight: 700; letter-spacing: -0.5px; }
+
+        .header-actions { display: flex; gap: 15px; align-items: center; }
+        
+        .reset-key-btn {
+            background: none; border: none; color: #8E8E93; font-size: 20px;
+            padding: 0; cursor: pointer;
+        }
 
         .add-btn-container { position: relative; }
         .add-btn {
-            background: #1C1C1E; color: #5A32FA;
-            width: 36px; height: 36px; border-radius: 18px;
+            background: #1C1C1E; color: #5A32FA; width: 36px; height: 36px; border-radius: 18px;
             display: flex; justify-content: center; align-items: center;
             font-size: 24px; font-weight: 500; cursor: pointer;
         }
         input[type="file"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 
         .content { padding: 24px; }
-        #status { font-size: 15px; color: #8E8E93; text-align: center; margin-bottom: 20px; min-height: 20px; }
+        #status { font-size: 15px; color: #8E8E93; text-align: center; margin-bottom: 20px; min-height: 20px; font-weight: 500; }
 
-        /* 3. PHYSICAL-TO-DIGITAL CARD DESIGN */
-        .wallet-card {
-            width: 100%;
-            aspect-ratio: 1.586; /* Exact Credit Card aspect ratio */
-            border-radius: 16px;
-            margin-bottom: 20px;
-            background-color: #1C1C1E;
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-            border: 1px solid rgba(255,255,255,0.1);
-            position: relative;
-            overflow: hidden;
+        /* 3. APPLE WALLET STACKING PHYSICS */
+        #walletContainer { display: flex; flex-direction: column; padding-top: 10px; }
+        .swipe-wrapper {
+            position: relative; width: 100%; margin-bottom: -110px;
+            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), margin 0.3s;
+        }
+        .swipe-wrapper:last-child { margin-bottom: 40px; }
+        .swipe-wrapper.expanded { transform: translateY(-20px); margin-bottom: 20px; z-index: 50; }
+
+        /* 4. SWIPE TO DELETE UI */
+        .delete-btn {
+            position: absolute; right: 0; top: 0; bottom: 0; width: 80px;
+            background-color: #FF3B30; color: white; font-weight: 600;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 16px; z-index: 1; opacity: 0; transition: opacity 0.2s;
         }
 
-        /* Frosted glass label for the card type */
-        .card-label {
+        /* 5. THE DIGITAL CARD */
+        .wallet-card {
+            width: 100%; aspect-ratio: 1.586; border-radius: 16px; padding: 24px; box-sizing: border-box;
+            display: flex; flex-direction: column; justify-content: space-between;
+            position: relative; z-index: 2; 
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.15);
+            transition: transform 0.3s ease-out; 
+            background-size: cover; background-position: center;
+        }
+
+        /* Card Themes */
+        .theme-pan { background: linear-gradient(135deg, #E0EAFC, #CFDEF3); color: #1a1a1a; }
+        .theme-pan .card-label { color: #555; }
+        .theme-aadhar { background: linear-gradient(135deg, #ffffff, #f0f0f0); color: #1a1a1a; border-top: 6px solid #E43D30; }
+        .theme-aadhar .card-label { color: #777; }
+        .theme-credit { background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; }
+        .theme-voter { background: linear-gradient(135deg, #e6f2ff, #b3d9ff); color: #1a1a1a; }
+        .theme-generic { background: linear-gradient(135deg, #2c2c2e, #1c1c1e); color: white; }
+
+        /* Card Typography */
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .card-title { font-size: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+        .card-icon { font-size: 24px; opacity: 0.8; }
+        .card-body { flex-grow: 1; display: flex; align-items: center; justify-content: center; }
+        .card-number { font-size: 26px; font-family: "SF Mono", ui-monospace, monospace; font-weight: 500; letter-spacing: 2px; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .card-footer { display: flex; justify-content: space-between; align-items: flex-end; }
+        .card-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.7; margin-bottom: 4px; }
+        .card-value { font-size: 16px; font-weight: 500; text-transform: uppercase; }
+
+        .btn-primary { background: #5A32FA; color: white; width: 100%; padding: 16px; border-radius: 14px; font-size: 17px; font-weight: 600; border: none; margin-top: 20px; cursor: pointer; display: none; }
+        
+        .preview-label {
             position: absolute; top: 15px; left: 15px;
             background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
             padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
             text-transform: uppercase; letter-spacing: 1px; color: white;
-        }
-
-        .btn-primary {
-            background: #5A32FA; color: white; width: 100%; padding: 16px;
-            border-radius: 14px; font-size: 17px; font-weight: 600; border: none;
-            margin-top: 20px; margin-bottom: 40px; cursor: pointer; display: none;
         }
     </style>
 </head>
@@ -84,20 +111,23 @@
 
     <div class="app-container">
         <div class="header">
-            <h1>Iris</h1>
-            <div class="add-btn-container">
-                <div class="add-btn">+</div>
-                <input type="file" accept="image/*" capture="environment" id="cameraInput">
+            <h1>Iris Wallet</h1>
+            <div class="header-actions">
+                <button class="reset-key-btn" id="resetKeyBtn" title="Reset API Key">🔑</button>
+                <div class="add-btn-container">
+                    <div class="add-btn">+</div>
+                    <input type="file" accept="image/*" capture="environment" id="cameraInput">
+                </div>
             </div>
         </div>
 
         <div class="content">
             <div id="status"></div>
             
-            <div id="previewSection" style="display:none;">
-                <h3 style="margin-top:0; color:#8E8E93; font-size: 14px;">PREVIEW</h3>
+            <div id="previewSection" style="display:none; margin-bottom: 40px;">
+                <h3 style="margin-top:0; color:#8E8E93; font-size: 14px; text-transform:uppercase;">Scanned Data</h3>
                 <div id="previewCardContainer"></div>
-                <button id="saveBtn" class="btn-primary">Save to Iris Wallet</button>
+                <button id="saveBtn" class="btn-primary">Save to Wallet</button>
             </div>
 
             <div id="walletContainer"></div>
@@ -112,122 +142,246 @@
         const saveBtn = document.getElementById('saveBtn');
         const walletContainer = document.getElementById('walletContainer');
 
-        let currentImageData = null;
-        let currentCardType = "Scanned Card";
+        let currentCardData = null;
 
-        // --- DATABASE SETUP (IndexedDB) ---
-        // This is a secure, local, high-capacity database on your iPhone
+        // --- 1. SECURE API KEY MANAGEMENT ---
+        function getApiKey() {
+            let key = localStorage.getItem('iris_gemini_key');
+            if (!key) {
+                key = prompt("Enter your Gemini API Key.\n\nIt will be securely saved only on this device's local storage and will never be shared publicly.");
+                if (key) {
+                    localStorage.setItem('iris_gemini_key', key.trim());
+                } else {
+                    statusText.innerText = "API Key required to scan cards.";
+                }
+            }
+            return key;
+        }
+
+        document.getElementById('resetKeyBtn').addEventListener('click', () => {
+            if(confirm("Are you sure you want to remove your API Key from this device?")) {
+                localStorage.removeItem('iris_gemini_key');
+                statusText.innerText = "API Key removed.";
+            }
+        });
+
+        // --- 2. INDEXEDDB SETUP (Secure Storage) ---
         let db;
-        const request = indexedDB.open("IrisDB", 1);
+        const request = indexedDB.open("IrisWalletDB", 2);
         
         request.onupgradeneeded = function(event) {
             db = event.target.result;
-            // Create a table called 'cards'
-            db.createObjectStore("cards", { keyPath: "id" }); 
+            if(!db.objectStoreNames.contains("digital_cards")) {
+                db.createObjectStore("digital_cards", { keyPath: "id" }); 
+            }
         };
         
         request.onsuccess = function(event) {
             db = event.target.result;
-            loadCardsFromDB(); // Load wallet on startup
+            loadWallet(); 
         };
 
-        // --- CAMERA AND SCANNING ---
+        // --- 3. THE SCANNER & GEMINI API ---
         cameraInput.addEventListener('change', async (event) => {
+            const apiKey = getApiKey();
+            if (!apiKey) {
+                event.target.value = ''; // Reset file input
+                return; 
+            }
+
             const file = event.target.files[0];
             if (!file) return;
 
-            statusText.innerText = "Processing image...";
+            statusText.innerText = "Sending securely to Gemini AI...";
             previewSection.style.display = 'none';
 
-            // Convert image to Base64 to save it and display it
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = async () => {
-                currentImageData = reader.result;
+                const base64Data = reader.result.split(',')[1]; 
 
-                // Display the image immediately in the digital card shape
+                // Show visual preview of the photo immediately
                 previewCardContainer.innerHTML = `
-                    <div class="wallet-card" style="background-image: url('${currentImageData}')">
-                        <div class="card-label" id="liveLabel">Analyzing...</div>
+                    <div class="wallet-card" style="background-image: url('${reader.result}')">
+                        <div class="preview-label" id="liveLabel">Analyzing image...</div>
                     </div>
                 `;
                 previewSection.style.display = 'block';
-                saveBtn.style.display = 'block';
 
-                // Run Offline AI to guess the card type
-                statusText.innerText = "AI scanning for card type (Offline Mode)...";
                 try {
-                    const result = await Tesseract.recognize(file, 'eng');
-                    const text = result.data.text.toUpperCase();
+                    const promptText = "Analyze this ID card. Reply ONLY with a valid JSON object. Do not use markdown blocks. The JSON must have these exact keys: 'type' (e.g. 'PAN Card', 'Aadhar Card', 'Credit Card', 'Voter ID', 'ID Card'), 'number' (the main ID number), 'name' (the cardholder's name). If you cannot find a value, use 'NOT FOUND'.";
                     
-                    if (text.includes("INCOME TAX DEPARTMENT") || text.match(/[A-Z]{5}[0-9]{4}[A-Z]{1}/)) {
-                        currentCardType = "PAN Card";
-                    } else if (text.includes("GOVERNMENT OF INDIA") || text.match(/\b\d{4}\s\d{4}\s\d{4}\b/)) {
-                        currentCardType = "Aadhar Card";
-                    } else if (text.includes("ELECTION COMMISSION")) {
-                        currentCardType = "Voter ID";
-                    } else {
-                        currentCardType = "ID Card";
+                    const requestBody = {
+                        contents: [{
+                            parts: [
+                                { text: promptText },
+                                { inline_data: { mime_type: file.type, data: base64Data } }
+                            ]
+                        }]
+                    };
+
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(requestBody)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`API Error: ${response.status}`);
                     }
+
+                    const apiResult = await response.json();
                     
-                    document.getElementById('liveLabel').innerText = currentCardType;
-                    statusText.innerText = "Ready to save.";
+                    let jsonText = apiResult.candidates[0].content.parts[0].text;
+                    jsonText = jsonText.replace(/```json/g, '').replace(/```/g, '').trim(); 
+                    const geminiData = JSON.parse(jsonText);
+
+                    currentCardData = {
+                        id: Date.now(),
+                        type: geminiData.type || "ID Card",
+                        number: geminiData.number || "XXXX XXXX",
+                        name: geminiData.name || "UNKNOWN",
+                        theme: getThemeForType(geminiData.type || ""),
+                        icon: getIconForType(geminiData.type || "")
+                    };
+
+                    statusText.innerText = "Scan Complete!";
+                    previewCardContainer.innerHTML = generateCardHTML(currentCardData);
+                    saveBtn.style.display = 'block';
+
                 } catch (err) {
-                    currentCardType = "ID Card";
-                    document.getElementById('liveLabel').innerText = currentCardType;
-                    statusText.innerText = "Scan complete. (AI offline)";
+                    console.error(err);
+                    document.getElementById('liveLabel').innerText = "Scan Failed";
+                    statusText.innerText = "Error analyzing card. Check your API Key or try again.";
                 }
             };
         });
 
-        // --- SAVING DATA ---
+        function getThemeForType(type) {
+            const t = type.toLowerCase();
+            if (t.includes('pan')) return 'theme-pan';
+            if (t.includes('aadhar')) return 'theme-aadhar';
+            if (t.includes('credit') || t.includes('debit')) return 'theme-credit';
+            if (t.includes('voter') || t.includes('election')) return 'theme-voter';
+            return 'theme-generic';
+        }
+
+        function getIconForType(type) {
+            const t = type.toLowerCase();
+            if (t.includes('pan')) return '🇮🇳';
+            if (t.includes('aadhar')) return '🦁';
+            if (t.includes('voter') || t.includes('election')) return '🗳️';
+            if (t.includes('credit') || t.includes('debit')) return '🏦';
+            return '💳';
+        }
+
+        function generateCardHTML(card) {
+            return `
+                <div class="wallet-card ${card.theme}">
+                    <div class="card-header">
+                        <div class="card-title">${card.type}</div>
+                        <div class="card-icon">${card.icon}</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-number">${card.number}</div>
+                    </div>
+                    <div class="card-footer">
+                        <div>
+                            <div class="card-label">Card Holder</div>
+                            <div class="card-value">${card.name}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- 4. SAVE TO DATABASE ---
         saveBtn.addEventListener('click', () => {
-            if (!currentImageData) return;
-
-            const newCard = {
-                id: Date.now(),
-                type: currentCardType,
-                image: currentImageData
-            };
-
-            // Save to IndexedDB
-            const transaction = db.transaction(["cards"], "readwrite");
-            const store = transaction.objectStore("cards");
-            store.add(newCard);
-
+            if (!currentCardData) return;
+            const transaction = db.transaction(["digital_cards"], "readwrite");
+            transaction.objectStore("digital_cards").add(currentCardData);
+            
             transaction.oncomplete = function() {
-                statusText.innerText = "Saved to Wallet!";
+                statusText.innerText = "Saved to Wallet";
                 previewSection.style.display = 'none';
-                currentImageData = null;
-                loadCardsFromDB(); // Refresh screen
+                saveBtn.style.display = 'none';
+                currentCardData = null;
+                loadWallet(); 
             };
         });
 
-        // --- LOADING DATA ---
-        function loadCardsFromDB() {
+        // --- 5. RENDER WALLET & SWIPE LOGIC ---
+        function loadWallet() {
             walletContainer.innerHTML = '';
-            
-            const transaction = db.transaction(["cards"], "readonly");
-            const store = transaction.objectStore("cards");
-            const request = store.getAll();
+            const transaction = db.transaction(["digital_cards"], "readonly");
+            const request = transaction.objectStore("digital_cards").getAll();
 
             request.onsuccess = function() {
                 const cards = request.result;
-                
                 if(cards.length === 0) {
-                    walletContainer.innerHTML = '<p style="text-align:center; color: #8E8E93; margin-top: 50px;">Tap + to securely scan your first card.</p>';
+                    walletContainer.innerHTML = '<p style="text-align:center; color:#8E8E93;">Your wallet is empty.</p>';
                     return;
                 }
 
-                // Reverse so newest is on top
-                cards.reverse().forEach(card => {
-                    walletContainer.innerHTML += `
-                        <div class="wallet-card" style="background-image: url('${card.image}')">
-                            <div class="card-label">${card.type}</div>
-                        </div>
+                cards.forEach((card, index) => {
+                    const zIndex = cards.length - index; 
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'swipe-wrapper';
+                    wrapper.style.zIndex = zIndex;
+                    wrapper.innerHTML = `
+                        <div class="delete-btn" onclick="deleteCard(${card.id})">Delete</div>
+                        ${generateCardHTML(card)}
                     `;
+                    
+                    walletContainer.appendChild(wrapper);
+                    applySwipePhysics(wrapper, card.id);
                 });
             };
+        }
+
+        function deleteCard(id) {
+            const transaction = db.transaction(["digital_cards"], "readwrite");
+            transaction.objectStore("digital_cards").delete(id);
+            transaction.oncomplete = () => loadWallet();
+        }
+
+        function applySwipePhysics(wrapper, id) {
+            const cardUI = wrapper.querySelector('.wallet-card');
+            const deleteBtn = wrapper.querySelector('.delete-btn');
+            
+            let startX = 0;
+            let currentX = 0;
+            let isSwiped = false;
+
+            cardUI.addEventListener('click', () => {
+                if(!isSwiped) wrapper.classList.toggle('expanded');
+            });
+
+            cardUI.addEventListener('touchstart', (e) => {
+                startX = e.touches[0].clientX;
+            });
+
+            cardUI.addEventListener('touchmove', (e) => {
+                currentX = e.touches[0].clientX;
+                const diff = startX - currentX;
+                if (diff > 20 && diff < 100) {
+                    cardUI.style.transform = `translateX(-${diff}px)`;
+                    deleteBtn.style.opacity = diff / 100;
+                }
+            });
+
+            cardUI.addEventListener('touchend', (e) => {
+                const diff = startX - currentX;
+                if (diff > 50) {
+                    cardUI.style.transform = 'translateX(-90px)';
+                    deleteBtn.style.opacity = 1;
+                    isSwiped = true;
+                } else {
+                    cardUI.style.transform = 'translateX(0)';
+                    deleteBtn.style.opacity = 0;
+                    isSwiped = false;
+                }
+            });
         }
     </script>
 </body>
