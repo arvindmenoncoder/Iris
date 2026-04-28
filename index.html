@@ -6,111 +6,75 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Iris">
-    <link rel="apple-touch-icon" href="icon.png">
     <title>Iris Wallet</title>
     
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
     <style>
-        /* iOS Native Typography and Background */
-        :root {
-            --bg-color: #000000;
-            --surface-color: #1C1C1E;
-            --text-main: #FFFFFF;
-            --text-muted: #8E8E93;
-            --iris-primary: #5A32FA;
-            --safe-area-top: env(safe-area-inset-top, 47px);
+        /* 1. NATIVE APP LOCKDOWN - Prevents bouncing and horizontal scrolling */
+        html, body {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: #000000; color: #FFFFFF;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+            overflow: hidden; /* Stops whole page from moving */
+            overscroll-behavior-y: none; /* Stops pull-to-refresh bounce */
+            position: fixed; /* Locks the body entirely */
         }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            margin: 0;
-            padding: 0;
-            -webkit-font-smoothing: antialiased;
-            overflow-x: hidden;
+        /* 2. SCROLLABLE CONTAINER */
+        .app-container {
+            width: 100%; height: 100%;
+            overflow-y: auto; /* Only this container scrolls */
+            -webkit-overflow-scrolling: touch; /* Smooth iOS scrolling */
+            padding-bottom: 50px;
         }
 
-        /* Header UI */
         .header {
-            padding: calc(var(--safe-area-top) + 20px) 24px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
+            padding: calc(env(safe-area-inset-top, 47px) + 20px) 24px 20px;
+            display: flex; justify-content: space-between; align-items: flex-end;
+            background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            position: sticky; top: 0; z-index: 100;
         }
-        .header h1 { margin: 0; font-size: 34px; font-weight: 700; letter-spacing: -0.5px; }
+        .header h1 { margin: 0; font-size: 34px; font-weight: 700; }
 
-        /* The Add Button (Top Right) */
         .add-btn-container { position: relative; }
         .add-btn {
-            background: var(--surface-color); color: var(--iris-primary);
+            background: #1C1C1E; color: #5A32FA;
             width: 36px; height: 36px; border-radius: 18px;
             display: flex; justify-content: center; align-items: center;
             font-size: 24px; font-weight: 500; cursor: pointer;
         }
         input[type="file"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 
-        /* Wallet Container */
-        .container { padding: 24px; }
-        
-        /* Status Text */
-        #status { font-size: 15px; color: var(--text-muted); text-align: center; margin-bottom: 20px; font-weight: 500; height: 20px; }
+        .content { padding: 24px; }
+        #status { font-size: 15px; color: #8E8E93; text-align: center; margin-bottom: 20px; min-height: 20px; }
 
-        /* Apple Wallet Style Cards */
+        /* 3. PHYSICAL-TO-DIGITAL CARD DESIGN */
         .wallet-card {
             width: 100%;
-            aspect-ratio: 1.586; /* Exact Credit Card / ID proportion */
-            border-radius: 18px;
-            padding: 24px;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            aspect-ratio: 1.586; /* Exact Credit Card aspect ratio */
+            border-radius: 16px;
+            margin-bottom: 20px;
+            background-color: #1C1C1E;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            border: 1px solid rgba(255,255,255,0.1);
             position: relative;
             overflow: hidden;
-            box-shadow: 0 15px 30px rgba(0,0,0,0.5);
-            margin-bottom: -40px; /* Stacked effect */
-            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            border: 1px solid rgba(255,255,255,0.15);
         }
-        
-        /* Spread out cards when clicked/hovered */
-        .wallet-card:hover, .wallet-card:active { transform: translateY(-20px); margin-bottom: 0px; }
-        .wallet-card:last-child { margin-bottom: 20px; }
 
-        /* Dynamic Card Themes */
-        .theme-pan { background: linear-gradient(135deg, #E0EAFC, #CFDEF3); color: #1a1a1a; }
-        .theme-pan .card-label { color: #555; }
-        
-        .theme-aadhar { background: linear-gradient(135deg, #ffffff, #f0f0f0); color: #1a1a1a; border-top: 6px solid #E43D30; }
-        .theme-aadhar .card-label { color: #777; }
-        
-        .theme-credit { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; }
-        .theme-generic { background: linear-gradient(135deg, #2c2c2e, #1c1c1e); color: white; }
+        /* Frosted glass label for the card type */
+        .card-label {
+            position: absolute; top: 15px; left: 15px;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 1px; color: white;
+        }
 
-        /* Card Typography */
-        .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
-        .card-title { font-size: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
-        .card-icon { font-size: 24px; opacity: 0.8; }
-        
-        .card-body { flex-grow: 1; display: flex; align-items: center; justify-content: center; }
-        .card-number { font-size: 26px; font-family: "SF Mono", ui-monospace, monospace; font-weight: 500; letter-spacing: 2px; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        
-        .card-footer { display: flex; justify-content: space-between; align-items: flex-end; }
-        .card-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.7; margin-bottom: 4px; }
-        .card-value { font-size: 16px; font-weight: 500; text-transform: uppercase; }
-
-        /* Action Button */
         .btn-primary {
-            background: var(--iris-primary); color: white; width: 100%; padding: 16px;
+            background: #5A32FA; color: white; width: 100%; padding: 16px;
             border-radius: 14px; font-size: 17px; font-weight: 600; border: none;
             margin-top: 20px; margin-bottom: 40px; cursor: pointer; display: none;
         }
@@ -118,23 +82,26 @@
 </head>
 <body>
 
-    <div class="header">
-        <h1>Wallet</h1>
-        <div class="add-btn-container">
-            <div class="add-btn">+</div>
-            <input type="file" accept="image/*" capture="environment" id="cameraInput">
-        </div>
-    </div>
-
-    <div class="container">
-        <div id="status"></div>
-        
-        <div id="previewSection" style="display:none;">
-            <div id="previewCardContainer"></div>
-            <button id="saveBtn" class="btn-primary">Add to Wallet</button>
+    <div class="app-container">
+        <div class="header">
+            <h1>Iris</h1>
+            <div class="add-btn-container">
+                <div class="add-btn">+</div>
+                <input type="file" accept="image/*" capture="environment" id="cameraInput">
+            </div>
         </div>
 
-        <div id="walletContainer"></div>
+        <div class="content">
+            <div id="status"></div>
+            
+            <div id="previewSection" style="display:none;">
+                <h3 style="margin-top:0; color:#8E8E93; font-size: 14px;">PREVIEW</h3>
+                <div id="previewCardContainer"></div>
+                <button id="saveBtn" class="btn-primary">Save to Iris Wallet</button>
+            </div>
+
+            <div id="walletContainer"></div>
+        </div>
     </div>
 
     <script>
@@ -145,125 +112,122 @@
         const saveBtn = document.getElementById('saveBtn');
         const walletContainer = document.getElementById('walletContainer');
 
-        let currentCard = null;
+        let currentImageData = null;
+        let currentCardType = "Scanned Card";
 
-        window.onload = renderWallet;
+        // --- DATABASE SETUP (IndexedDB) ---
+        // This is a secure, local, high-capacity database on your iPhone
+        let db;
+        const request = indexedDB.open("IrisDB", 1);
+        
+        request.onupgradeneeded = function(event) {
+            db = event.target.result;
+            // Create a table called 'cards'
+            db.createObjectStore("cards", { keyPath: "id" }); 
+        };
+        
+        request.onsuccess = function(event) {
+            db = event.target.result;
+            loadCardsFromDB(); // Load wallet on startup
+        };
 
+        // --- CAMERA AND SCANNING ---
         cameraInput.addEventListener('change', async (event) => {
             const file = event.target.files[0];
             if (!file) return;
 
-            statusText.innerText = "Analyzing security features...";
+            statusText.innerText = "Processing image...";
             previewSection.style.display = 'none';
 
-            try {
-                const result = await Tesseract.recognize(file, 'eng');
-                const rawText = result.data.text.replace(/\n/g, ' '); // Flatten text for regex
-                
-                currentCard = parseSmartCardData(rawText);
-                
-                statusText.innerText = "Card Recognized";
-                previewCardContainer.innerHTML = generateCardHTML(currentCard);
+            // Convert image to Base64 to save it and display it
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = async () => {
+                currentImageData = reader.result;
+
+                // Display the image immediately in the digital card shape
+                previewCardContainer.innerHTML = `
+                    <div class="wallet-card" style="background-image: url('${currentImageData}')">
+                        <div class="card-label" id="liveLabel">Analyzing...</div>
+                    </div>
+                `;
                 previewSection.style.display = 'block';
                 saveBtn.style.display = 'block';
 
-            } catch (error) {
-                statusText.innerText = "Failed to read card. Try better lighting.";
-            }
+                // Run Offline AI to guess the card type
+                statusText.innerText = "AI scanning for card type (Offline Mode)...";
+                try {
+                    const result = await Tesseract.recognize(file, 'eng');
+                    const text = result.data.text.toUpperCase();
+                    
+                    if (text.includes("INCOME TAX DEPARTMENT") || text.match(/[A-Z]{5}[0-9]{4}[A-Z]{1}/)) {
+                        currentCardType = "PAN Card";
+                    } else if (text.includes("GOVERNMENT OF INDIA") || text.match(/\b\d{4}\s\d{4}\s\d{4}\b/)) {
+                        currentCardType = "Aadhar Card";
+                    } else if (text.includes("ELECTION COMMISSION")) {
+                        currentCardType = "Voter ID";
+                    } else {
+                        currentCardType = "ID Card";
+                    }
+                    
+                    document.getElementById('liveLabel').innerText = currentCardType;
+                    statusText.innerText = "Ready to save.";
+                } catch (err) {
+                    currentCardType = "ID Card";
+                    document.getElementById('liveLabel').innerText = currentCardType;
+                    statusText.innerText = "Scan complete. (AI offline)";
+                }
+            };
         });
 
-        // The Smart AI Parser using Regex
-        function parseSmartCardData(text) {
-            let data = { id: Date.now(), type: 'Generic ID', theme: 'theme-generic', number: '', name: 'NAME NOT FOUND', icon: '💳' };
-
-            // 1. Check for PAN Card Format (5 Letters, 4 Numbers, 1 Letter)
-            const panMatch = text.match(/[A-Z]{5}[0-9]{4}[A-Z]{1}/);
-            if (panMatch) {
-                data.type = "PAN Card";
-                data.theme = "theme-pan";
-                data.number = panMatch[0];
-                data.icon = '🇮🇳';
-                return extractNameForPan(text, data);
-            }
-
-            // 2. Check for Aadhar Card Format (12 Digits separated by space)
-            const aadharMatch = text.match(/\b\d{4}\s\d{4}\s\d{4}\b/);
-            if (aadharMatch) {
-                data.type = "Aadhar Card";
-                data.theme = "theme-aadhar";
-                data.number = aadharMatch[0];
-                data.icon = '🦁'; // Ashoka Chakra/Lion placeholder
-                return data; // Name extraction on Aadhar is complex due to multiple languages, keeping it safe.
-            }
-
-            // 3. Check for Standard Credit Card (16 Digits)
-            const ccMatch = text.match(/\b(?:\d[ -]*?){13,16}\b/);
-            if (ccMatch) {
-                data.type = "Credit/Debit Card";
-                data.theme = "theme-credit";
-                data.number = ccMatch[0];
-                data.icon = '🏦';
-                return data;
-            }
-
-            // Fallback for Unknown Cards
-            const cleanWords = text.split(' ').filter(w => w.length > 4);
-            data.number = cleanWords[0] || "XXXX XXXX";
-            return data;
-        }
-
-        // Helper to grab the name on a PAN card (usually appears right before the PAN number)
-        function extractNameForPan(text, data) {
-            const lines = text.split(' ');
-            data.name = "AUTHORIZED CITIZEN"; // Default safe fallback
-            return data;
-        }
-
-        // Generate the native-looking HTML for a card
-        function generateCardHTML(card) {
-            return `
-                <div class="wallet-card ${card.theme}">
-                    <div class="card-header">
-                        <div class="card-title">${card.type}</div>
-                        <div class="card-icon">${card.icon}</div>
-                    </div>
-                    <div class="card-body">
-                        <div class="card-number">${card.number}</div>
-                    </div>
-                    <div class="card-footer">
-                        <div>
-                            <div class="card-label">Card Holder</div>
-                            <div class="card-value">${card.name}</div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
+        // --- SAVING DATA ---
         saveBtn.addEventListener('click', () => {
-            if (!currentCard) return;
-            let wallet = JSON.parse(localStorage.getItem('iris_wallet')) || [];
-            wallet.push(currentCard);
-            localStorage.setItem('iris_wallet', JSON.stringify(wallet));
-            
-            statusText.innerText = "";
-            previewSection.style.display = 'none';
-            currentCard = null;
-            renderWallet();
+            if (!currentImageData) return;
+
+            const newCard = {
+                id: Date.now(),
+                type: currentCardType,
+                image: currentImageData
+            };
+
+            // Save to IndexedDB
+            const transaction = db.transaction(["cards"], "readwrite");
+            const store = transaction.objectStore("cards");
+            store.add(newCard);
+
+            transaction.oncomplete = function() {
+                statusText.innerText = "Saved to Wallet!";
+                previewSection.style.display = 'none';
+                currentImageData = null;
+                loadCardsFromDB(); // Refresh screen
+            };
         });
 
-        function renderWallet() {
+        // --- LOADING DATA ---
+        function loadCardsFromDB() {
             walletContainer.innerHTML = '';
-            let wallet = JSON.parse(localStorage.getItem('iris_wallet')) || [];
             
-            if(wallet.length === 0) {
-                walletContainer.innerHTML = '<p style="text-align:center; color: #8E8E93; margin-top: 50px;">Tap + to add your first card.</p>';
-                return;
-            }
+            const transaction = db.transaction(["cards"], "readonly");
+            const store = transaction.objectStore("cards");
+            const request = store.getAll();
 
-            wallet.forEach(card => {
-                walletContainer.innerHTML += generateCardHTML(card);
-            });
+            request.onsuccess = function() {
+                const cards = request.result;
+                
+                if(cards.length === 0) {
+                    walletContainer.innerHTML = '<p style="text-align:center; color: #8E8E93; margin-top: 50px;">Tap + to securely scan your first card.</p>';
+                    return;
+                }
+
+                // Reverse so newest is on top
+                cards.reverse().forEach(card => {
+                    walletContainer.innerHTML += `
+                        <div class="wallet-card" style="background-image: url('${card.image}')">
+                            <div class="card-label">${card.type}</div>
+                        </div>
+                    `;
+                });
+            };
         }
     </script>
 </body>
