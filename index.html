@@ -11,7 +11,6 @@
     --bg: #000;
     --card: rgba(255,255,255,0.08);
     --border: rgba(255,255,255,0.15);
-    --text-secondary: #8E8E93;
     --primary: #0A84FF;
 }
 
@@ -21,37 +20,27 @@ html, body {
     margin: 0;
     height: 100%;
     background: var(--bg);
-    color: white;
     font-family: -apple-system, BlinkMacSystemFont;
-    overflow-x: hidden;
-}
-
-/* Layout */
-.app {
-    height: 100%;
-    overflow-y: auto;
-    padding-bottom: 100px;
+    overflow: hidden;
 }
 
 /* Header */
 .header {
-    position: sticky;
+    position: absolute;
     top: 0;
+    width: 100%;
     padding: 20px;
     padding-top: calc(env(safe-area-inset-top) + 10px);
-    backdrop-filter: blur(30px);
-    background: rgba(0,0,0,0.6);
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    z-index: 10;
+    backdrop-filter: blur(30px);
+    background: rgba(0,0,0,0.6);
 }
 
-h1 {
-    margin: 0;
-    font-size: 30px;
-}
+h1 { margin: 0; color: white; }
 
-/* Add Button */
+/* Add button */
 .add {
     width: 40px;
     height: 40px;
@@ -60,10 +49,9 @@ h1 {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
+    color: white;
     position: relative;
 }
-
 .add input {
     position: absolute;
     width: 100%;
@@ -71,278 +59,315 @@ h1 {
     opacity: 0;
 }
 
-/* Cards */
-.wallet {
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-/* Card Flip */
-.card {
+/* Stack */
+.stack {
+    position: absolute;
+    top: 110px;
     width: 100%;
-    aspect-ratio: 1.6;
-    perspective: 1000px;
+    height: calc(100% - 110px);
 }
 
+/* Card */
+.card {
+    position: absolute;
+    left: 5%;
+    width: 90%;
+    max-width: 420px;
+    aspect-ratio: 1.6;
+    border-radius: 22px;
+    padding: 20px;
+    background: var(--card);
+    backdrop-filter: blur(40px);
+    border: 1px solid var(--border);
+    color: white;
+    transform-origin: center;
+    will-change: transform;
+}
+
+/* Expanded overlay */
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    opacity: 0;
+    pointer-events: none;
+    transition: 0.3s;
+}
+.overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Flip */
 .inner {
     width: 100%;
     height: 100%;
     position: relative;
-    transition: 0.6s;
     transform-style: preserve-3d;
+    transition: 0.6s;
 }
-
 .inner.flipped {
     transform: rotateY(180deg);
 }
-
 .face {
     position: absolute;
     width: 100%;
     height: 100%;
-    border-radius: 20px;
-    padding: 20px;
-    background: var(--card);
-    backdrop-filter: blur(30px);
-    border: 1px solid var(--border);
+    border-radius: 22px;
     backface-visibility: hidden;
 }
+.back { transform: rotateY(180deg); }
 
-.back {
-    transform: rotateY(180deg);
-}
-
-.title {
-    font-size: 13px;
-    opacity: 0.7;
-}
-
-.number {
-    font-size: 22px;
-    margin: 15px 0;
-}
+/* Text */
+.title { font-size: 13px; opacity: 0.7; }
+.number { font-size: 22px; margin: 15px 0; }
 
 .field {
     display: flex;
     justify-content: space-between;
     margin-top: 10px;
 }
-
 .copy {
     background: none;
     border: none;
     color: var(--primary);
-    font-size: 14px;
 }
 
 /* Status */
 .status {
+    position: fixed;
+    bottom: 20px;
+    width: 100%;
     text-align: center;
-    color: var(--text-secondary);
-    font-size: 14px;
-    margin-top: 10px;
+    color: #aaa;
 }
 </style>
 </head>
 
 <body>
 
-<div class="app">
-
-    <div class="header">
-        <h1>Iris</h1>
-        <div class="add">
-            +
-            <input type="file" accept="image/*" capture="environment" id="camera">
-        </div>
+<div class="header">
+    <h1>Iris</h1>
+    <div class="add">
+        +
+        <input type="file" id="camera" accept="image/*" capture="environment">
     </div>
-
-    <div class="status" id="status"></div>
-
-    <div class="wallet" id="wallet"></div>
-
 </div>
 
-<script>
-const camera = document.getElementById('camera');
-const wallet = document.getElementById('wallet');
-const statusText = document.getElementById('status');
+<div class="stack" id="stack"></div>
+<div class="overlay" id="overlay"></div>
+<div class="status" id="status"></div>
 
-let captureStep = 'front';
-let temp = {};
-let db;
+<script>
+const stack = document.getElementById("stack");
+const overlay = document.getElementById("overlay");
+const statusText = document.getElementById("status");
+const camera = document.getElementById("camera");
+
+let db, cards = [];
+let captureStep = "front", temp = {};
+let activeCard = null;
 
 /* DB */
-const req = indexedDB.open("iris", 1);
-req.onupgradeneeded = e => {
-    e.target.result.createObjectStore("cards", { keyPath: "id" });
-};
-req.onsuccess = e => {
-    db = e.target.result;
-    load();
-};
+const req = indexedDB.open("iris",1);
+req.onupgradeneeded=e=>e.target.result.createObjectStore("cards",{keyPath:"id"});
+req.onsuccess=e=>{db=e.target.result;load();};
 
-/* Capture Flow */
-camera.addEventListener('change', e => {
-    const file = e.target.files[0];
-    if (!file) return;
+/* Physics spring */
+function spring(current, target, velocity) {
+    const stiffness = 0.08;
+    const damping = 0.8;
+    let force = (target - current) * stiffness;
+    velocity = (velocity + force) * damping;
+    current += velocity;
+    return {current, velocity};
+}
 
-    if (captureStep === 'front') {
-        temp.front = file;
-        captureStep = 'back';
-        statusText.innerText = "Capture back side";
+/* Capture */
+camera.onchange=e=>{
+    const file=e.target.files[0];
+    if(!file) return;
+
+    if(captureStep==="front"){
+        temp.front=file;
+        captureStep="back";
+        statusText.innerText="Capture back";
         return;
     }
 
-    temp.back = file;
-    captureStep = 'front';
+    temp.back=file;
+    captureStep="front";
     processCard();
-});
+};
 
-/* Gemini OCR */
-async function processCard() {
-    statusText.innerText = "Analyzing...";
+/* OCR */
+async function processCard(){
+    statusText.innerText="Analyzing...";
 
-    const key = localStorage.getItem("gemini");
-    if (!key) {
-        const k = prompt("Enter Gemini API key");
-        localStorage.setItem("gemini", k);
-    }
+    const key=localStorage.getItem("gemini")||prompt("Enter Gemini Key");
+    localStorage.setItem("gemini",key);
 
-    const frontBase64 = await toBase64(temp.front);
+    const base64=await toBase64(temp.front);
 
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${localStorage.getItem("gemini")}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            contents: [{
-                parts: [
-                    {
-                        text: `
-Extract all fields from this ID.
-
-Return JSON:
-{
-"type":"",
-"number":"",
-"name":"",
-"dob":"",
-"gender":"",
-"address":"",
-"expiry":""
-}
-`
-                    },
-                    {
-                        inline_data: {
-                            mime_type: "image/jpeg",
-                            data: frontBase64
-                        }
-                    }
+    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${key}`,{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+            contents:[{
+                parts:[
+                    {text:`Extract JSON {type,name,number,dob}`},
+                    {inline_data:{mime_type:"image/jpeg",data:base64}}
                 ]
             }]
         })
     });
 
-    const data = await res.json();
-    let json = JSON.parse(data.candidates[0].content.parts[0].text.replace(/```json|```/g,''));
+    const data=await res.json();
+    const parsed=JSON.parse(data.candidates[0].content.parts[0].text.replace(/```json|```/g,''));
 
-    const card = {
-        id: Date.now(),
-        ...json,
-        front: await toBase64(temp.front),
-        back: await toBase64(temp.back),
-        flipped: false
+    const card={
+        id:Date.now(),
+        ...parsed,
+        front:await toBase64(temp.front),
+        back:await toBase64(temp.back),
+        flipped:false
     };
 
-    save(card);
+    const tx=db.transaction("cards","readwrite");
+    tx.objectStore("cards").add(card);
+    tx.oncomplete=load;
 }
 
 /* Helpers */
-function toBase64(file) {
-    return new Promise(r => {
-        const fr = new FileReader();
-        fr.onload = () => r(fr.result.split(',')[1]);
+function toBase64(file){
+    return new Promise(r=>{
+        const fr=new FileReader();
+        fr.onload=()=>r(fr.result.split(',')[1]);
         fr.readAsDataURL(file);
     });
 }
 
-/* Save */
-function save(card) {
-    const tx = db.transaction("cards", "readwrite");
-    tx.objectStore("cards").add(card);
-    tx.oncomplete = load;
-}
-
 /* Load */
-function load() {
-    wallet.innerHTML = "";
-    const tx = db.transaction("cards", "readonly");
-    tx.objectStore("cards").getAll().onsuccess = e => {
-        e.target.result.reverse().forEach(render);
+function load(){
+    stack.innerHTML="";
+    const tx=db.transaction("cards","readonly");
+    tx.objectStore("cards").getAll().onsuccess=e=>{
+        cards=e.target.result.reverse();
+        cards.forEach((c,i)=>render(c,i));
     };
 }
 
 /* Render */
-function render(c) {
-    const el = document.createElement("div");
-    el.className = "card";
+function render(c,i){
+    const el=document.createElement("div");
+    el.className="card";
 
-    el.innerHTML = `
-    <div class="inner ${c.flipped ? 'flipped' : ''}">
-        
+    let y=i*25;
+    let scale=1 - i*0.05;
+
+    el.style.transform=`translateY(${y}px) scale(${scale})`;
+
+    el.innerHTML=`
+    <div class="inner ${c.flipped?'flipped':''}">
         <div class="face">
             <div class="title">${c.type}</div>
             <div class="number">${c.number}</div>
-
-            ${field("Name", c.name)}
-            ${field("DOB", c.dob)}
-            ${field("Gender", c.gender)}
-
+            ${field(c.name)}
+            ${field(c.dob)}
         </div>
-
         <div class="face back">
-            <img src="data:image/jpeg;base64,${c.back}" style="width:100%; height:100%; object-fit:cover; border-radius:20px;">
+            <img src="data:image/jpeg;base64,${c.back}" style="width:100%;height:100%;border-radius:22px;">
         </div>
-
-    </div>
-    `;
-
-    el.onclick = () => flip(c.id);
-    wallet.appendChild(el);
-}
-
-function field(label, value) {
-    if (!value) return "";
-    return `
-    <div class="field">
-        <span>${value}</span>
-        <button class="copy" onclick="copy(event, '${value}')">Copy</button>
     </div>`;
+
+    addGesture(el,c);
+
+    stack.appendChild(el);
 }
 
-/* Flip */
-function flip(id) {
-    const tx = db.transaction("cards", "readwrite");
-    const store = tx.objectStore("cards");
-    const r = store.get(id);
+/* Gesture engine */
+function addGesture(el,c){
+    let startY=0, currentY=0, velocity=0, anim;
 
-    r.onsuccess = () => {
-        const d = r.result;
-        d.flipped = !d.flipped;
-        store.put(d);
+    el.addEventListener("touchstart",e=>{
+        startY=e.touches[0].clientY;
+        cancelAnimationFrame(anim);
+    });
+
+    el.addEventListener("touchmove",e=>{
+        currentY=e.touches[0].clientY-startY;
+        el.style.transform=`translateY(${currentY}px) scale(1)`;
+        velocity=currentY;
+    });
+
+    el.addEventListener("touchend",()=>{
+        if(Math.abs(velocity)>150){
+            deleteCard(c.id);
+            return;
+        }
+
+        let pos=currentY;
+
+        function animate(){
+            let s=spring(pos,0,velocity);
+            pos=s.current;
+            velocity=s.velocity;
+            el.style.transform=`translateY(${pos}px)`;
+
+            if(Math.abs(pos)>0.5){
+                anim=requestAnimationFrame(animate);
+            } else {
+                el.style.transform="";
+            }
+        }
+        animate();
+    });
+
+    el.onclick=()=>expand(el,c);
+}
+
+/* Expand */
+function expand(el,c){
+    activeCard=el;
+    overlay.classList.add("active");
+
+    el.style.transition="0.4s";
+    el.style.transform="translateY(0) scale(1)";
+    el.style.zIndex=999;
+
+    el.onclick=()=>{
+        c.flipped=!c.flipped;
+        load();
+    };
+
+    overlay.onclick=()=>{
+        overlay.classList.remove("active");
         load();
     };
 }
 
+/* Field */
+function field(v){
+    if(!v) return "";
+    return `<div class="field">
+        <span>${v}</span>
+        <button class="copy" onclick="copy(event,'${v}')">Copy</button>
+    </div>`;
+}
+
 /* Copy */
-function copy(e, text) {
+function copy(e,text){
     e.stopPropagation();
     navigator.clipboard.writeText(text);
-    statusText.innerText = "Copied";
+    statusText.innerText="Copied";
     setTimeout(()=>statusText.innerText="",1000);
+}
+
+/* Delete */
+function deleteCard(id){
+    const tx=db.transaction("cards","readwrite");
+    tx.objectStore("cards").delete(id);
+    tx.oncomplete=load;
 }
 </script>
 
