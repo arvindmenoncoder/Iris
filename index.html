@@ -1,375 +1,310 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Iris Wallet">
+    <title>Iris Wallet</title>
+    
+    <style>
+        :root {
+            --iris-primary: #5A32FA;
+            --bg-black: #000000;
+            --surface-gray: #1C1C1E;
+        }
 
-<title>Iris Wallet</title>
+        html, body {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: var(--bg-black); color: #FFFFFF;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+            overflow: hidden; overscroll-behavior-y: none; position: fixed;
+        }
 
-<style>
-:root {
-    --bg: #000;
-    --card: rgba(255,255,255,0.08);
-    --border: rgba(255,255,255,0.15);
-    --primary: #0A84FF;
-}
+        .app-container {
+            width: 100%; height: 100%;
+            overflow-y: auto; -webkit-overflow-scrolling: touch;
+            padding-bottom: 80px;
+        }
 
-* { box-sizing: border-box; }
+        .header {
+            padding: calc(env(safe-area-inset-top, 47px) + 20px) 24px 20px;
+            display: flex; justify-content: space-between; align-items: flex-end;
+            background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            position: sticky; top: 0; z-index: 100; border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
+        }
 
-html, body {
-    margin: 0;
-    height: 100%;
-    background: var(--bg);
-    font-family: -apple-system, BlinkMacSystemFont;
-    overflow: hidden;
-}
+        .header h1 { margin: 0; font-size: 34px; font-weight: 700; letter-spacing: -0.5px; }
+        .header-actions { display: flex; gap: 15px; align-items: center; }
+        .reset-key-btn { background: none; border: none; color: #8E8E93; font-size: 20px; cursor: pointer; padding: 5px; }
 
-/* Header */
-.header {
-    position: absolute;
-    top: 0;
-    width: 100%;
-    padding: 20px;
-    padding-top: calc(env(safe-area-inset-top) + 10px);
-    display: flex;
-    justify-content: space-between;
-    z-index: 10;
-    backdrop-filter: blur(30px);
-    background: rgba(0,0,0,0.6);
-}
+        .add-btn-container { position: relative; }
+        .add-btn {
+            background: var(--surface-gray); color: var(--iris-primary);
+            width: 36px; height: 36px; border-radius: 18px;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 24px; font-weight: 500; cursor: pointer;
+        }
+        input[type="file"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 
-h1 { margin: 0; color: white; }
+        .content { padding: 24px; }
+        #status { font-size: 14px; color: #8E8E93; text-align: center; margin-bottom: 20px; min-height: 20px; font-weight: 500; }
 
-/* Add button */
-.add {
-    width: 40px;
-    height: 40px;
-    border-radius: 20px;
-    background: var(--card);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    position: relative;
-}
-.add input {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    opacity: 0;
-}
+        #walletContainer { display: flex; flex-direction: column; padding-top: 10px; }
 
-/* Stack */
-.stack {
-    position: absolute;
-    top: 110px;
-    width: 100%;
-    height: calc(100% - 110px);
-}
+        .swipe-wrapper {
+            position: relative; width: 100%; margin-bottom: -110px;
+            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .swipe-wrapper:last-child { margin-bottom: 40px; }
+        .swipe-wrapper.expanded { transform: translateY(-20px); margin-bottom: 20px; z-index: 50; }
 
-/* Card */
-.card {
-    position: absolute;
-    left: 5%;
-    width: 90%;
-    max-width: 420px;
-    aspect-ratio: 1.6;
-    border-radius: 22px;
-    padding: 20px;
-    background: var(--card);
-    backdrop-filter: blur(40px);
-    border: 1px solid var(--border);
-    color: white;
-    transform-origin: center;
-    will-change: transform;
-}
+        .delete-btn {
+            position: absolute; right: 0; top: 0; bottom: 0; width: 80px;
+            background-color: #FF3B30; color: white; font-weight: 600;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 16px; z-index: 1; opacity: 0;
+        }
 
-/* Expanded overlay */
-.overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.6);
-    opacity: 0;
-    pointer-events: none;
-    transition: 0.3s;
-}
-.overlay.active {
-    opacity: 1;
-    pointer-events: auto;
-}
+        .wallet-card {
+            width: 100%; aspect-ratio: 1.586; border-radius: 16px; padding: 24px; box-sizing: border-box;
+            display: flex; flex-direction: column; justify-content: space-between;
+            position: relative; z-index: 2; 
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.15);
+            background-size: cover; background-position: center; transition: transform 0.3s;
+        }
 
-/* Flip */
-.inner {
-    width: 100%;
-    height: 100%;
-    position: relative;
-    transform-style: preserve-3d;
-    transition: 0.6s;
-}
-.inner.flipped {
-    transform: rotateY(180deg);
-}
-.face {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    border-radius: 22px;
-    backface-visibility: hidden;
-}
-.back { transform: rotateY(180deg); }
+        .theme-pan { background: linear-gradient(135deg, #E0EAFC, #CFDEF3); color: #1a1a1a; }
+        .theme-aadhar { background: linear-gradient(135deg, #ffffff, #f0f0f0); color: #1a1a1a; border-top: 6px solid #E43D30; }
+        .theme-credit { background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; }
+        .theme-voter { background: linear-gradient(135deg, #e6f2ff, #b3d9ff); color: #1a1a1a; }
+        .theme-generic { background: linear-gradient(135deg, #2c2c2e, #1c1c1e); color: white; }
 
-/* Text */
-.title { font-size: 13px; opacity: 0.7; }
-.number { font-size: 22px; margin: 15px 0; }
+        .card-title { font-size: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+        .card-number { font-size: 24px; font-family: "SF Mono", monospace; letter-spacing: 2px; text-align: center; margin: 20px 0; }
+        .card-value { font-size: 16px; font-weight: 500; text-transform: uppercase; }
 
-.field {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 10px;
-}
-.copy {
-    background: none;
-    border: none;
-    color: var(--primary);
-}
-
-/* Status */
-.status {
-    position: fixed;
-    bottom: 20px;
-    width: 100%;
-    text-align: center;
-    color: #aaa;
-}
-</style>
+        .btn-primary { 
+            background: var(--iris-primary); color: white; width: 100%; padding: 16px; 
+            border-radius: 14px; font-size: 17px; font-weight: 600; border: none; 
+            margin-top: 20px; cursor: pointer; display: none; 
+        }
+    </style>
 </head>
-
 <body>
 
-<div class="header">
-    <h1>Iris</h1>
-    <div class="add">
-        +
-        <input type="file" id="camera" accept="image/*" capture="environment">
+    <div class="app-container">
+        <div class="header">
+            <h1>Iris Wallet</h1>
+            <div class="header-actions">
+                <button class="reset-key-btn" id="resetKeyBtn">🔑</button>
+                <div class="add-btn-container">
+                    <div class="add-btn">+</div>
+                    <input type="file" accept="image/*" capture="environment" id="cameraInput">
+                </div>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="status"></div>
+            
+            <div id="previewSection" style="display:none; margin-bottom: 40px;">
+                <div id="previewCardContainer"></div>
+                <button id="saveBtn" class="btn-primary">Add to Wallet</button>
+            </div>
+
+            <div id="walletContainer"></div>
+        </div>
     </div>
-</div>
 
-<div class="stack" id="stack"></div>
-<div class="overlay" id="overlay"></div>
-<div class="status" id="status"></div>
+    <script>
+        const cameraInput = document.getElementById('cameraInput');
+        const statusText = document.getElementById('status');
+        const previewSection = document.getElementById('previewSection');
+        const previewCardContainer = document.getElementById('previewCardContainer');
+        const saveBtn = document.getElementById('saveBtn');
+        const walletContainer = document.getElementById('walletContainer');
 
-<script>
-const stack = document.getElementById("stack");
-const overlay = document.getElementById("overlay");
-const statusText = document.getElementById("status");
-const camera = document.getElementById("camera");
+        let currentCardData = null;
 
-let db, cards = [];
-let captureStep = "front", temp = {};
-let activeCard = null;
-
-/* DB */
-const req = indexedDB.open("iris",1);
-req.onupgradeneeded=e=>e.target.result.createObjectStore("cards",{keyPath:"id"});
-req.onsuccess=e=>{db=e.target.result;load();};
-
-/* Physics spring */
-function spring(current, target, velocity) {
-    const stiffness = 0.08;
-    const damping = 0.8;
-    let force = (target - current) * stiffness;
-    velocity = (velocity + force) * damping;
-    current += velocity;
-    return {current, velocity};
-}
-
-/* Capture */
-camera.onchange=e=>{
-    const file=e.target.files[0];
-    if(!file) return;
-
-    if(captureStep==="front"){
-        temp.front=file;
-        captureStep="back";
-        statusText.innerText="Capture back";
-        return;
-    }
-
-    temp.back=file;
-    captureStep="front";
-    processCard();
-};
-
-/* OCR */
-async function processCard(){
-    statusText.innerText="Analyzing...";
-
-    const key=localStorage.getItem("gemini")||prompt("Enter Gemini Key");
-    localStorage.setItem("gemini",key);
-
-    const base64=await toBase64(temp.front);
-
-    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${key}`,{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-            contents:[{
-                parts:[
-                    {text:`Extract JSON {type,name,number,dob}`},
-                    {inline_data:{mime_type:"image/jpeg",data:base64}}
-                ]
-            }]
-        })
-    });
-
-    const data=await res.json();
-    const parsed=JSON.parse(data.candidates[0].content.parts[0].text.replace(/```json|```/g,''));
-
-    const card={
-        id:Date.now(),
-        ...parsed,
-        front:await toBase64(temp.front),
-        back:await toBase64(temp.back),
-        flipped:false
-    };
-
-    const tx=db.transaction("cards","readwrite");
-    tx.objectStore("cards").add(card);
-    tx.oncomplete=load;
-}
-
-/* Helpers */
-function toBase64(file){
-    return new Promise(r=>{
-        const fr=new FileReader();
-        fr.onload=()=>r(fr.result.split(',')[1]);
-        fr.readAsDataURL(file);
-    });
-}
-
-/* Load */
-function load(){
-    stack.innerHTML="";
-    const tx=db.transaction("cards","readonly");
-    tx.objectStore("cards").getAll().onsuccess=e=>{
-        cards=e.target.result.reverse();
-        cards.forEach((c,i)=>render(c,i));
-    };
-}
-
-/* Render */
-function render(c,i){
-    const el=document.createElement("div");
-    el.className="card";
-
-    let y=i*25;
-    let scale=1 - i*0.05;
-
-    el.style.transform=`translateY(${y}px) scale(${scale})`;
-
-    el.innerHTML=`
-    <div class="inner ${c.flipped?'flipped':''}">
-        <div class="face">
-            <div class="title">${c.type}</div>
-            <div class="number">${c.number}</div>
-            ${field(c.name)}
-            ${field(c.dob)}
-        </div>
-        <div class="face back">
-            <img src="data:image/jpeg;base64,${c.back}" style="width:100%;height:100%;border-radius:22px;">
-        </div>
-    </div>`;
-
-    addGesture(el,c);
-
-    stack.appendChild(el);
-}
-
-/* Gesture engine */
-function addGesture(el,c){
-    let startY=0, currentY=0, velocity=0, anim;
-
-    el.addEventListener("touchstart",e=>{
-        startY=e.touches[0].clientY;
-        cancelAnimationFrame(anim);
-    });
-
-    el.addEventListener("touchmove",e=>{
-        currentY=e.touches[0].clientY-startY;
-        el.style.transform=`translateY(${currentY}px) scale(1)`;
-        velocity=currentY;
-    });
-
-    el.addEventListener("touchend",()=>{
-        if(Math.abs(velocity)>150){
-            deleteCard(c.id);
-            return;
-        }
-
-        let pos=currentY;
-
-        function animate(){
-            let s=spring(pos,0,velocity);
-            pos=s.current;
-            velocity=s.velocity;
-            el.style.transform=`translateY(${pos}px)`;
-
-            if(Math.abs(pos)>0.5){
-                anim=requestAnimationFrame(animate);
-            } else {
-                el.style.transform="";
+        // --- 1. API KEY HANDLING ---
+        function checkApiKeyOnLoad() {
+            if (!localStorage.getItem('iris_gemini_key')) {
+                promptForKey();
             }
         }
-        animate();
-    });
 
-    el.onclick=()=>expand(el,c);
-}
+        function promptForKey() {
+            const key = prompt("Please enter your Gemini API Key:");
+            if (key && key.trim().length > 10) {
+                localStorage.setItem('iris_gemini_key', key.trim());
+                statusText.innerText = "Key Saved.";
+                setTimeout(() => { statusText.innerText = ""; }, 2000);
+            }
+        }
 
-/* Expand */
-function expand(el,c){
-    activeCard=el;
-    overlay.classList.add("active");
+        document.getElementById('resetKeyBtn').addEventListener('click', () => {
+            if (localStorage.getItem('iris_gemini_key')) {
+                if (confirm("Remove saved API Key?")) {
+                    localStorage.removeItem('iris_gemini_key');
+                    location.reload();
+                }
+            } else {
+                promptForKey();
+            }
+        });
 
-    el.style.transition="0.4s";
-    el.style.transform="translateY(0) scale(1)";
-    el.style.zIndex=999;
+        window.addEventListener('load', checkApiKeyOnLoad);
 
-    el.onclick=()=>{
-        c.flipped=!c.flipped;
-        load();
-    };
+        // --- 2. DATABASE ---
+        let db;
+        const dbReq = indexedDB.open("IrisWalletDB", 6);
+        dbReq.onupgradeneeded = e => {
+            db = e.target.result;
+            if(!db.objectStoreNames.contains("digital_cards")) {
+                db.createObjectStore("digital_cards", { keyPath: "id" });
+            }
+        };
+        dbReq.onsuccess = e => { db = e.target.result; loadWallet(); };
 
-    overlay.onclick=()=>{
-        overlay.classList.remove("active");
-        load();
-    };
-}
+        // --- 3. SCANNING ---
+        cameraInput.addEventListener('change', async (event) => {
+            const apiKey = localStorage.getItem('iris_gemini_key');
+            const file = event.target.files[0];
+            if (!file || !apiKey) return;
 
-/* Field */
-function field(v){
-    if(!v) return "";
-    return `<div class="field">
-        <span>${v}</span>
-        <button class="copy" onclick="copy(event,'${v}')">Copy</button>
-    </div>`;
-}
+            statusText.innerText = "Analyzing with Gemini 3 AI...";
+            previewSection.style.display = 'none';
 
-/* Copy */
-function copy(e,text){
-    e.stopPropagation();
-    navigator.clipboard.writeText(text);
-    statusText.innerText="Copied";
-    setTimeout(()=>statusText.innerText="",1000);
-}
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = async () => {
+                const base64Data = reader.result.split(',')[1];
+                previewCardContainer.innerHTML = `<div class="wallet-card" style="background-image: url('${reader.result}')"></div>`;
+                previewSection.style.display = 'block';
 
-/* Delete */
-function deleteCard(id){
-    const tx=db.transaction("cards","readwrite");
-    tx.objectStore("cards").delete(id);
-    tx.oncomplete=load;
-}
-</script>
+                try {
+                    // Using the new Gemini 3 Flash model
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [
+                                    { text: "Identify this ID. Return JSON: { \"type\": \"PAN Card\"|\"Aadhar Card\"|\"Credit Card\"|\"Voter ID\", \"number\": \"string\", \"name\": \"string\" }" },
+                                    { inline_data: { mime_type: "image/jpeg", data: base64Data } }
+                                ]
+                            }]
+                        })
+                    });
 
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error.message || "API Error");
+                    }
+
+                    const result = await response.json();
+                    let jsonText = result.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
+                    const parsed = JSON.parse(jsonText);
+
+                    currentCardData = {
+                        id: Date.now(),
+                        type: parsed.type || "ID Card",
+                        number: parsed.number || "Unknown",
+                        name: parsed.name || "Unknown",
+                        theme: getTheme(parsed.type),
+                        icon: getIcon(parsed.type)
+                    };
+
+                    previewCardContainer.innerHTML = generateCardHTML(currentCardData);
+                    saveBtn.style.display = 'block';
+                    statusText.innerText = "Success!";
+                    setTimeout(() => { statusText.innerText = ""; }, 2000);
+                } catch (e) {
+                    statusText.innerText = "Error: " + e.message;
+                }
+            };
+        });
+
+        function getTheme(t) {
+            t = (t || "").toLowerCase();
+            if(t.includes('pan')) return 'theme-pan';
+            if(t.includes('aadhar')) return 'theme-aadhar';
+            if(t.includes('credit')) return 'theme-credit';
+            if(t.includes('voter')) return 'theme-voter';
+            return 'theme-generic';
+        }
+
+        function getIcon(t) {
+            t = (t || "").toLowerCase();
+            if(t.includes('pan')) return '🇮🇳';
+            if(t.includes('aadhar')) return '🦁';
+            if(t.includes('voter')) return '🗳️';
+            return '💳';
+        }
+
+        function generateCardHTML(c) {
+            return `
+                <div class="wallet-card ${c.theme}">
+                    <div class="card-header"><div class="card-title">${c.type}</div><div>${c.icon}</div></div>
+                    <div class="card-body"><div class="card-number">${c.number}</div></div>
+                    <div class="card-footer">
+                        <div><div style="font-size:10px; opacity:0.7;">HOLDER</div><div class="card-value">${c.name}</div></div>
+                    </div>
+                </div>`;
+        }
+
+        saveBtn.addEventListener('click', () => {
+            const tx = db.transaction("digital_cards", "readwrite");
+            tx.objectStore("digital_cards").add(currentCardData);
+            tx.oncomplete = () => {
+                previewSection.style.display = 'none';
+                loadWallet();
+            };
+        });
+
+        function loadWallet() {
+            walletContainer.innerHTML = '';
+            const tx = db.transaction("digital_cards", "readonly");
+            tx.objectStore("digital_cards").getAll().onsuccess = e => {
+                const cards = e.target.result.reverse();
+                if(cards.length === 0) {
+                    walletContainer.innerHTML = '<p style="text-align:center; color:#8E8E93; margin-top:40px;">Your wallet is empty.</p>';
+                }
+                cards.forEach((c, i) => {
+                    const w = document.createElement('div');
+                    w.className = 'swipe-wrapper';
+                    w.style.zIndex = cards.length - i;
+                    w.innerHTML = `<div class="delete-btn" onclick="deleteCard(${c.id})">Delete</div>${generateCardHTML(c)}`;
+                    walletContainer.appendChild(w);
+                    applySwipe(w);
+                });
+            };
+        }
+
+        function deleteCard(id) {
+            const tx = db.transaction("digital_cards", "readwrite");
+            tx.objectStore("digital_cards").delete(id);
+            tx.oncomplete = () => loadWallet();
+        }
+
+        function applySwipe(w) {
+            const card = w.querySelector('.wallet-card');
+            const del = w.querySelector('.delete-btn');
+            let start = 0;
+            card.addEventListener('touchstart', e => start = e.touches[0].clientX);
+            card.addEventListener('touchmove', e => {
+                let diff = start - e.touches[0].clientX;
+                if (diff > 20 && diff < 100) { card.style.transform = `translateX(-${diff}px)`; del.style.opacity = diff/100; }
+            });
+            card.addEventListener('touchend', e => {
+                let diff = start - e.changedTouches[0].clientX;
+                if (diff > 50) { card.style.transform = 'translateX(-90px)'; del.style.opacity = 1; }
+                else { card.style.transform = 'translateX(0)'; del.style.opacity = 0; }
+            });
+            card.addEventListener('click', () => w.classList.toggle('expanded'));
+        }
+    </script>
 </body>
 </html>
