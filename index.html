@@ -170,5 +170,27 @@
             });
         }
     </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').then(reg => {
+                    console.log('Service Worker Registered!');
+                    
+                    // Listen for updates to the Service Worker
+                    reg.addEventListener('updatefound', () => {
+                        const newWorker = reg.installing;
+                        newWorker.addEventListener('statechange', () => {
+                            // If there is new code and the app is ready to update
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                console.log('New update available! Reloading...');
+                                // Force a page reload to show the newest GitHub commit
+                                window.location.reload(); 
+                            }
+                        });
+                    });
+                });
+            });
+        }
+    </script>
 </body>
 </html>
