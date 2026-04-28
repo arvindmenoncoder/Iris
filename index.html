@@ -6,7 +6,6 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Iris Wallet">
-    <link rel="apple-touch-icon" href="icon.png">
     <title>Iris Wallet</title>
     
     <style>
@@ -40,7 +39,7 @@
 
         .header-actions { display: flex; gap: 15px; align-items: center; }
         
-        .reset-key-btn { background: none; border: none; color: #8E8E93; font-size: 20px; cursor: pointer; }
+        .reset-key-btn { background: none; border: none; color: #8E8E93; font-size: 20px; cursor: pointer; padding: 5px; }
 
         .add-btn-container { position: relative; }
         .add-btn {
@@ -82,6 +81,7 @@
         .theme-pan { background: linear-gradient(135deg, #E0EAFC, #CFDEF3); color: #1a1a1a; }
         .theme-aadhar { background: linear-gradient(135deg, #ffffff, #f0f0f0); color: #1a1a1a; border-top: 6px solid #E43D30; }
         .theme-credit { background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; }
+        .theme-voter { background: linear-gradient(135deg, #e6f2ff, #b3d9ff); color: #1a1a1a; }
         .theme-generic { background: linear-gradient(135deg, #2c2c2e, #1c1c1e); color: white; }
 
         .card-title { font-size: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
@@ -101,7 +101,7 @@
         <div class="header">
             <h1>Iris Wallet</h1>
             <div class="header-actions">
-                <button class="reset-key-btn" id="resetKeyBtn">🔑</button>
+                <button class="reset-key-btn" id="resetKeyBtn" title="Manage API Key">🔑</button>
                 <div class="add-btn-container">
                     <div class="add-btn">+</div>
                     <input type="file" accept="image/*" capture="environment" id="cameraInput">
@@ -110,7 +110,7 @@
         </div>
 
         <div class="content">
-            <div id="status">Ready</div>
+            <div id="status"></div>
             
             <div id="previewSection" style="display:none; margin-bottom: 40px;">
                 <div id="previewCardContainer"></div>
@@ -131,26 +131,44 @@
 
         let currentCardData = null;
 
-        // 1. API Key Logic
-        function getApiKey() {
-            let key = localStorage.getItem('iris_gemini_key');
+        // --- 1. SECURE API KEY MANAGEMENT ---
+        function checkApiKeyOnLoad() {
+            const key = localStorage.getItem('iris_gemini_key');
             if (!key) {
-                key = prompt("Please enter your Gemini API Key:");
-                if (key) localStorage.setItem('iris_gemini_key', key.trim());
+                promptForKey();
             }
-            return key;
+        }
+
+        function promptForKey() {
+            const newKey = prompt("Please enter your Gemini API Key to enable scanning:");
+            if (newKey && newKey.trim().length > 10) {
+                localStorage.setItem('iris_gemini_key', newKey.trim());
+                statusText.innerText = "API Key Saved.";
+                setTimeout(() => { statusText.innerText = ""; }, 2000);
+            } else {
+                statusText.innerText = "API Key Required for Scanning.";
+            }
         }
 
         document.getElementById('resetKeyBtn').addEventListener('click', () => {
-            if(confirm("Remove saved API Key?")) {
-                localStorage.removeItem('iris_gemini_key');
-                location.reload();
+            const existingKey = localStorage.getItem('iris_gemini_key');
+            if (existingKey) {
+                if (confirm("Remove saved API Key from this device?")) {
+                    localStorage.removeItem('iris_gemini_key');
+                    statusText.innerText = "Key Removed.";
+                    location.reload();
+                }
+            } else {
+                promptForKey();
             }
         });
 
-        // 2. Database Logic
+        // Run check on start
+        window.addEventListener('load', checkApiKeyOnLoad);
+
+        // --- 2. DATABASE LOGIC ---
         let db;
-        const dbReq = indexedDB.open("IrisWalletDB", 4);
+        const dbReq = indexedDB.open("IrisWalletDB", 5);
         dbReq.onupgradeneeded = e => {
             db = e.target.result;
             if(!db.objectStoreNames.contains("digital_cards")) {
@@ -159,11 +177,16 @@
         };
         dbReq.onsuccess = e => { db = e.target.result; loadWallet(); };
 
-        // 3. Scanning Logic
+        // --- 3. SCANNING LOGIC ---
         cameraInput.addEventListener('change', async (event) => {
-            const apiKey = getApiKey();
+            const apiKey = localStorage.getItem('iris_gemini_key');
+            if (!apiKey) {
+                promptForKey();
+                return;
+            }
+
             const file = event.target.files[0];
-            if (!file || !apiKey) return;
+            if (!file) return;
 
             statusText.innerText = "Analyzing with Gemini AI...";
             previewSection.style.display = 'none';
@@ -173,7 +196,7 @@
             reader.onload = async () => {
                 const base64Data = reader.result.split(',')[1];
                 
-                // Show raw photo preview
+                // Show temporary photo preview
                 previewCardContainer.innerHTML = `<div class="wallet-card" style="background-image: url('${reader.result}')"></div>`;
                 previewSection.style.display = 'block';
 
@@ -191,7 +214,7 @@
                         })
                     });
 
-                    if (!response.ok) throw new Error(await response.text());
+                    if (!response.ok) throw new Error("API Connection Error");
 
                     const result = await response.json();
                     let jsonText = result.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
@@ -201,17 +224,16 @@
                         id: Date.now(),
                         type: parsed.type || "ID Card",
                         number: parsed.number || "Unknown",
-                        name: parsed.name || "Unknown",
+                        name: parsed.name || "Unknown Name",
                         theme: getTheme(parsed.type),
                         icon: getIcon(parsed.type)
                     };
 
                     previewCardContainer.innerHTML = generateCardHTML(currentCardData);
                     saveBtn.style.display = 'block';
-                    statusText.innerText = "Success! Verify and save.";
+                    statusText.innerText = "Scan Successful!";
                 } catch (e) {
-                    console.error(e);
-                    statusText.innerText = "Error analyzing card. Try again.";
+                    statusText.innerText = "Error: Check your key or photo quality.";
                 }
             };
         });
@@ -220,7 +242,8 @@
             t = (t || "").toLowerCase();
             if(t.includes('pan')) return 'theme-pan';
             if(t.includes('aadhar')) return 'theme-aadhar';
-            if(t.includes('credit')) return 'theme-credit';
+            if(t.includes('credit') || t.includes('debit')) return 'theme-credit';
+            if(t.includes('voter')) return 'theme-voter';
             return 'theme-generic';
         }
 
@@ -228,6 +251,7 @@
             t = (t || "").toLowerCase();
             if(t.includes('pan')) return '🇮🇳';
             if(t.includes('aadhar')) return '🦁';
+            if(t.includes('voter')) return '🗳️';
             return '💳';
         }
 
@@ -247,7 +271,8 @@
             tx.objectStore("digital_cards").add(currentCardData);
             tx.oncomplete = () => {
                 previewSection.style.display = 'none';
-                statusText.innerText = "Card Saved!";
+                statusText.innerText = "Added to Wallet";
+                setTimeout(() => { statusText.innerText = ""; }, 2000);
                 loadWallet();
             };
         });
@@ -258,7 +283,7 @@
             tx.objectStore("digital_cards").getAll().onsuccess = e => {
                 const cards = e.target.result.reverse();
                 if(cards.length === 0) {
-                    walletContainer.innerHTML = '<p style="text-align:center; color:#8E8E93;">Wallet is empty.</p>';
+                    walletContainer.innerHTML = '<p style="text-align:center; color:#8E8E93; margin-top:40px;">Your wallet is empty.</p>';
                 }
                 cards.forEach((c, i) => {
                     const w = document.createElement('div');
