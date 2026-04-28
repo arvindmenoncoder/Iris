@@ -14,79 +14,37 @@
 
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #000000; /* Dark mode for modern look */
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #000000;
             color: white;
             margin: 0;
             padding: 20px;
-            padding-top: 60px; /* Safe area for iPhone notch/Dynamic Island */
+            padding-top: 60px;
         }
-        h1 { text-align: center; font-size: 28px; margin-bottom: 30px; }
+        h1, h2 { text-align: center; }
         
-        /* The Camera Button */
-        .scan-btn-container {
-            position: relative;
-            display: flex;
-            justify-content: center;
-            margin-bottom: 40px;
-        }
-        .scan-btn {
+        .scan-btn-container { position: relative; display: flex; justify-content: center; margin-bottom: 20px; }
+        .btn {
             background: linear-gradient(135deg, #5A32FA, #D05CFF);
-            color: white;
-            padding: 15px 30px;
-            border-radius: 25px;
-            font-size: 18px;
-            font-weight: bold;
-            border: none;
-            box-shadow: 0 8px 20px rgba(90, 50, 250, 0.4);
-            cursor: pointer;
-            width: 80%;
-            text-align: center;
+            color: white; padding: 15px 30px; border-radius: 25px;
+            font-size: 18px; font-weight: bold; border: none;
+            width: 80%; text-align: center; cursor: pointer;
         }
-        /* Invisible file input overlaid on the button */
-        input[type="file"] {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            opacity: 0;
-            cursor: pointer;
-        }
+        input[type="file"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 
-        /* The Digital Card Design */
         .digital-card {
             background: linear-gradient(135deg, #2c2c2e, #1c1c1e);
-            border-radius: 16px;
-            padding: 20px;
-            margin-top: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            border: 1px solid #3a3a3c;
-            display: none; /* Hidden until a card is scanned */
-            flex-direction: column;
-            gap: 15px;
+            border-radius: 16px; padding: 20px; margin-top: 20px; margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #3a3a3c;
+            display: flex; flex-direction: column; gap: 15px;
         }
-        .card-header {
-            font-size: 14px;
-            color: #8e8e93;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .card-number {
-            font-size: 22px;
-            font-family: monospace;
-            letter-spacing: 2px;
-        }
-        .card-name {
-            font-size: 18px;
-            font-weight: 500;
-        }
+        .card-header { font-size: 14px; color: #8e8e93; text-transform: uppercase; letter-spacing: 1px; }
+        .card-number { font-size: 22px; font-family: monospace; letter-spacing: 2px; }
+        .card-name { font-size: 18px; font-weight: 500; }
         
-        /* Loading Status */
-        #status {
-            text-align: center;
-            color: #D05CFF;
-            font-size: 16px;
-            margin-top: 10px;
-            min-height: 20px;
-        }
+        #status { text-align: center; color: #D05CFF; margin-bottom: 20px; }
+        #saveBtn { display: none; background: #34C759; margin: 0 auto; display: block; width: 80%; }
+        #saveBtn.hidden { display: none; }
     </style>
 </head>
 <body>
@@ -94,68 +52,123 @@
     <h1>Iris Wallet</h1>
 
     <div class="scan-btn-container">
-        <div class="scan-btn">📸 Scan New Card</div>
+        <div class="btn">📸 Scan New Card</div>
         <input type="file" accept="image/*" capture="environment" id="cameraInput">
     </div>
 
     <div id="status"></div>
 
-    <div class="digital-card" id="digitalCard">
-        <div class="card-header" id="cardType">Generic ID Card</div>
-        <div class="card-number" id="cardNumber">XXXX XXXX XXXX</div>
-        <div class="card-name" id="cardName">SCANNING...</div>
+    <div id="previewSection" style="display: none;">
+        <h2>Scanned Result</h2>
+        <div class="digital-card" id="digitalCard">
+            <div class="card-header" id="cardType">Loading...</div>
+            <div class="card-number" id="cardNumber">Loading...</div>
+            <div class="card-name" id="cardName">Loading...</div>
+        </div>
+        <button id="saveBtn" class="btn hidden">Save to Wallet</button>
     </div>
+
+    <hr style="border-color: #333; margin: 30px 0;">
+
+    <h2>My Wallet</h2>
+    <div id="walletContainer"></div>
 
     <script>
         const cameraInput = document.getElementById('cameraInput');
         const statusText = document.getElementById('status');
-        const digitalCard = document.getElementById('digitalCard');
-        const cardTypeText = document.getElementById('cardType');
-        const cardNumberText = document.getElementById('cardNumber');
-        const cardNameText = document.getElementById('cardName');
+        const previewSection = document.getElementById('previewSection');
+        const saveBtn = document.getElementById('saveBtn');
+        const walletContainer = document.getElementById('walletContainer');
+
+        let currentScannedData = null; // Temporarily holds the data before saving
+
+        // Load existing cards when the app opens
+        window.onload = renderWallet;
 
         cameraInput.addEventListener('change', async (event) => {
             const file = event.target.files[0];
             if (!file) return;
 
-            // 1. Show the UI
-            digitalCard.style.display = 'flex';
+            previewSection.style.display = 'block';
+            saveBtn.classList.add('hidden');
             statusText.innerText = "Analyzing image via AI...";
-            cardNumberText.innerText = "Processing...";
-            cardNameText.innerText = "Please wait...";
 
             try {
-                // 2. Run Tesseract OCR on the image
                 const result = await Tesseract.recognize(file, 'eng', {
-                    logger: m => {
-                        if(m.status === 'recognizing text') {
-                            statusText.innerText = `Scanning: ${Math.round(m.progress * 100)}%`;
-                        }
-                    }
+                    logger: m => { if(m.status === 'recognizing text') statusText.innerText = `Scanning: ${Math.round(m.progress * 100)}%`; }
                 });
 
-                const extractedText = result.data.text;
-                statusText.innerText = "Scan Complete!";
-                
-                // 3. Process the Data (Basic Example)
-                // In a production app, we would use complex Regular Expressions to find specific ID formats.
-                // For now, we will grab the first few non-empty lines to populate the card.
-                const lines = extractedText.split('\n').filter(line => line.trim().length > 3);
+                const lines = result.data.text.split('\n').filter(line => line.trim().length > 3);
+                statusText.innerText = "Scan Complete! Check details below.";
                 
                 if (lines.length >= 2) {
-                    cardTypeText.innerText = lines[0].substring(0, 20).toUpperCase(); // Assume line 1 is issuing authority
-                    cardNumberText.innerText = lines[1].substring(0, 25); // Assume line 2 has the ID number
-                    cardNameText.innerText = lines[2] ? lines[2].substring(0, 20) : "Name Not Found";
-                } else {
-                    cardNumberText.innerText = "Could not read text clearly.";
-                    cardNameText.innerText = "Please try scanning again in better light.";
-                }
+                    // Temporarily store the data
+                    currentScannedData = {
+                        id: Date.now(), // Unique ID for the card
+                        type: lines[0].substring(0, 20).toUpperCase(),
+                        number: lines[1].substring(0, 25),
+                        name: lines[2] ? lines[2].substring(0, 20) : "Name Not Found"
+                    };
 
+                    // Show it on screen
+                    document.getElementById('cardType').innerText = currentScannedData.type;
+                    document.getElementById('cardNumber').innerText = currentScannedData.number;
+                    document.getElementById('cardName').innerText = currentScannedData.name;
+                    
+                    // Reveal the save button
+                    saveBtn.classList.remove('hidden');
+                } else {
+                    statusText.innerText = "Could not read card clearly. Try again.";
+                }
             } catch (error) {
-                console.error(error);
                 statusText.innerText = "Error scanning card.";
             }
         });
+
+        // Save the card to iPhone Local Storage
+        saveBtn.addEventListener('click', () => {
+            if (!currentScannedData) return;
+
+            // 1. Get existing cards from local storage (or create empty array)
+            let wallet = JSON.parse(localStorage.getItem('iris_saved_cards')) || [];
+            
+            // 2. Add the new card
+            wallet.push(currentScannedData);
+            
+            // 3. Save it back to local storage
+            localStorage.setItem('iris_saved_cards', JSON.stringify(wallet));
+
+            // 4. Reset UI
+            statusText.innerText = "Card Saved Successfully!";
+            previewSection.style.display = 'none';
+            currentScannedData = null;
+
+            // 5. Update the wallet display
+            renderWallet();
+        });
+
+        // Read from Local Storage and build the HTML cards
+        function renderWallet() {
+            walletContainer.innerHTML = ''; // Clear current display
+            let wallet = JSON.parse(localStorage.getItem('iris_saved_cards')) || [];
+
+            if (wallet.length === 0) {
+                walletContainer.innerHTML = '<p style="text-align:center; color:#8e8e93;">Your wallet is empty.</p>';
+                return;
+            }
+
+            // Loop through saved cards and draw them
+            wallet.forEach(card => {
+                const cardHTML = `
+                    <div class="digital-card">
+                        <div class="card-header">${card.type}</div>
+                        <div class="card-number">${card.number}</div>
+                        <div class="card-name">${card.name}</div>
+                    </div>
+                `;
+                walletContainer.innerHTML += cardHTML;
+            });
+        }
     </script>
 </body>
 </html>
