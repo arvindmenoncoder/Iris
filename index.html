@@ -10,225 +10,354 @@
     
     <style>
         :root {
-            --iris-primary: #5A32FA;
-            --bg-black: #000000;
-            --surface-gray: #1C1C1E;
+            --ios-bg: #000000;
+            --ios-surface: #1c1c1e;
+            --ios-accent: #5A32FA;
+            --ios-text: #ffffff;
+            --ios-text-secondary: #8e8e93;
+            --safe-top: env(safe-area-inset-top, 44px);
+            --safe-bottom: env(safe-area-inset-bottom, 34px);
         }
 
+        /* 1. LOCKDOWN UI (NO SCROLLING/SHIFTING) */
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
         html, body {
-            margin: 0; padding: 0; width: 100%; height: 100%;
-            background-color: var(--bg-black); color: #FFFFFF;
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
-            overflow: hidden; overscroll-behavior-y: none; position: fixed;
+            margin: 0; padding: 0; width: 100vw; height: 100vh;
+            background-color: var(--ios-bg); color: var(--ios-text);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+            overflow: hidden; position: fixed; 
+            touch-action: none; /* Prevents browser gestures */
         }
 
-        .app-container {
-            width: 100%; height: 100%;
-            overflow-y: auto; -webkit-overflow-scrolling: touch;
-            padding-bottom: 80px;
+        /* 2. MAIN LAYOUT */
+        .app-shell {
+            display: flex; flex-direction: column; width: 100%; height: 100%;
         }
 
         .header {
-            padding: calc(env(safe-area-inset-top, 47px) + 20px) 24px 20px;
-            display: flex; justify-content: space-between; align-items: flex-end;
-            background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            position: sticky; top: 0; z-index: 100; border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
+            padding: calc(var(--safe-top) + 20px) 24px 16px;
+            display: flex; justify-content: space-between; align-items: center;
+            z-index: 1000; background: rgba(0,0,0,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
         }
 
-        .header h1 { margin: 0; font-size: 34px; font-weight: 700; letter-spacing: -0.5px; }
-        .header-actions { display: flex; gap: 15px; align-items: center; }
-        .reset-key-btn { background: none; border: none; color: #8E8E93; font-size: 20px; cursor: pointer; padding: 5px; }
+        .header h1 { margin: 0; font-size: 34px; font-weight: 700; letter-spacing: -1px; }
 
-        .add-btn-container { position: relative; }
-        .add-btn {
-            background: var(--surface-gray); color: var(--iris-primary);
-            width: 36px; height: 36px; border-radius: 18px;
-            display: flex; justify-content: center; align-items: center;
-            font-size: 24px; font-weight: 500; cursor: pointer;
-        }
-        input[type="file"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
-
-        .content { padding: 24px; }
-        #status { font-size: 14px; color: #8E8E93; text-align: center; margin-bottom: 20px; min-height: 20px; font-weight: 500; }
-
-        #walletContainer { display: flex; flex-direction: column; padding-top: 10px; }
-
-        .swipe-wrapper {
-            position: relative; width: 100%; margin-bottom: -110px;
-            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-        }
-        .swipe-wrapper:last-child { margin-bottom: 40px; }
-        .swipe-wrapper.expanded { transform: translateY(-20px); margin-bottom: 20px; z-index: 50; }
-
-        .delete-btn {
-            position: absolute; right: 0; top: 0; bottom: 0; width: 80px;
-            background-color: #FF3B30; color: white; font-weight: 600;
+        .header-actions { display: flex; gap: 16px; }
+        .icon-btn {
+            background: var(--ios-surface); border: none; color: var(--ios-accent);
+            width: 38px; height: 38px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            border-radius: 16px; z-index: 1; opacity: 0;
+            font-size: 20px; cursor: pointer;
         }
 
-        .wallet-card {
-            width: 100%; aspect-ratio: 1.586; border-radius: 16px; padding: 24px; box-sizing: border-box;
-            display: flex; flex-direction: column; justify-content: space-between;
-            position: relative; z-index: 2; 
-            box-shadow: 0 -5px 20px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.15);
-            background-size: cover; background-position: center; transition: transform 0.3s;
+        .scroll-container {
+            flex: 1; overflow-y: auto; overflow-x: hidden;
+            padding: 16px 20px 100px; -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; /* Hide scrollbars */
+        }
+        .scroll-container::-webkit-scrollbar { display: none; }
+
+        /* 3. CARD STACKING & ANIMATION */
+        .wallet-stack { display: flex; flex-direction: column; width: 100%; position: relative; }
+
+        .card-wrapper {
+            position: relative; width: 100%; margin-bottom: -130px;
+            transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+            perspective: 1000px; z-index: var(--zi);
         }
 
-        .theme-pan { background: linear-gradient(135deg, #E0EAFC, #CFDEF3); color: #1a1a1a; }
-        .theme-aadhar { background: linear-gradient(135deg, #ffffff, #f0f0f0); color: #1a1a1a; border-top: 6px solid #E43D30; }
-        .theme-credit { background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; }
-        .theme-voter { background: linear-gradient(135deg, #e6f2ff, #b3d9ff); color: #1a1a1a; }
-        .theme-generic { background: linear-gradient(135deg, #2c2c2e, #1c1c1e); color: white; }
+        .card-wrapper.active { margin-bottom: 20px; transform: translateY(-10px); }
+        .card-wrapper.active ~ .card-wrapper { transform: translateY(180px); }
 
-        .card-title { font-size: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
-        .card-number { font-size: 24px; font-family: "SF Mono", monospace; letter-spacing: 2px; text-align: center; margin: 20px 0; }
-        .card-value { font-size: 16px; font-weight: 500; text-transform: uppercase; }
+        /* 4. FLIP PHYSICS */
+        .card-inner {
+            width: 100%; aspect-ratio: 1.586; position: relative;
+            transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+        }
 
-        .btn-primary { 
-            background: var(--iris-primary); color: white; width: 100%; padding: 16px; 
-            border-radius: 14px; font-size: 17px; font-weight: 600; border: none; 
-            margin-top: 20px; cursor: pointer; display: none; 
+        .card-wrapper.flipped .card-inner { transform: rotateY(180deg); }
+
+        .card-front, .card-back {
+            position: absolute; width: 100%; height: 100%;
+            backface-visibility: hidden; border-radius: 16px;
+            padding: 24px; display: flex; flex-direction: column;
+            justify-content: space-between; border: 1px solid rgba(255,255,255,0.1);
+            overflow: hidden;
+        }
+
+        .card-back { transform: rotateY(180deg); background: #2c2c2e; }
+
+        /* THEMES */
+        .theme-pan { background: linear-gradient(135deg, #eef2f3 0%, #8e9eab 100%); color: #1c1c1e; }
+        .theme-aadhar { background: #fff; color: #1c1c1e; border-top: 8px solid #E43D30; }
+        .theme-credit { background: linear-gradient(135deg, #232526 0%, #414345 100%); color: #fff; }
+        .theme-voter { background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); color: #fff; }
+        .theme-generic { background: #2c2c2e; color: #fff; }
+
+        /* CARD CONTENT UI */
+        .card-row { display: flex; justify-content: space-between; align-items: flex-start; }
+        .card-chip { width: 45px; height: 35px; background: linear-gradient(135deg, #ffd700, #b8860b); border-radius: 6px; }
+        .card-type-label { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.8; }
+        
+        .card-number-display {
+            font-family: "SF Mono", monospace; font-size: 24px; letter-spacing: 3px;
+            display: flex; align-items: center; gap: 10px; justify-content: center;
+        }
+        
+        .copy-btn {
+            background: rgba(255,255,255,0.15); border: none; padding: 6px;
+            border-radius: 6px; cursor: pointer; color: inherit; font-size: 12px;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .card-info-group { display: flex; flex-direction: column; gap: 4px; }
+        .info-label { font-size: 9px; font-weight: 600; text-transform: uppercase; opacity: 0.6; }
+        .info-value { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+
+        /* 5. OVERLAY UI */
+        .overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 2000;
+            display: none; flex-direction: column; padding: var(--safe-top) 24px;
+        }
+        .overlay.active { display: flex; }
+
+        .scanner-instruction { text-align: center; font-size: 20px; font-weight: 600; margin: 40px 0; }
+        
+        .camera-trigger {
+            width: 80px; height: 80px; border-radius: 50%; border: 4px solid #fff;
+            margin: auto auto 40px; display: flex; align-items: center; justify-content: center;
+        }
+        .camera-trigger div { width: 64px; height: 64px; background: #fff; border-radius: 50%; }
+
+        .status-pill {
+            background: var(--ios-accent); color: white; padding: 12px 24px;
+            border-radius: 24px; font-weight: 600; text-align: center;
+            position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+            display: none; box-shadow: 0 10px 30px rgba(90, 50, 250, 0.4);
         }
     </style>
 </head>
 <body>
 
-    <div class="app-container">
-        <div class="header">
+    <div class="app-shell">
+        <header class="header">
             <h1>Iris Wallet</h1>
             <div class="header-actions">
-                <button class="reset-key-btn" id="resetKeyBtn">🔑</button>
+                <button class="icon-btn" onclick="toggleKey()">🔑</button>
                 <div class="add-btn-container">
-                    <div class="add-btn">+</div>
-                    <input type="file" accept="image/*" capture="environment" id="cameraInput">
+                    <button class="icon-btn" onclick="startScanning()">＋</button>
                 </div>
             </div>
-        </div>
+        </header>
 
-        <div class="content">
-            <div id="status"></div>
-            
-            <div id="previewSection" style="display:none; margin-bottom: 40px;">
-                <div id="previewCardContainer"></div>
-                <button id="saveBtn" class="btn-primary">Add to Wallet</button>
-            </div>
-
-            <div id="walletContainer"></div>
+        <div class="scroll-container">
+            <div id="walletStack" class="wallet-stack"></div>
         </div>
     </div>
 
+    <!-- SCANNER OVERLAY -->
+    <div id="scannerOverlay" class="overlay">
+        <div style="display:flex; justify-content: flex-end;">
+            <button class="icon-btn" onclick="closeScanner()" style="background:none; font-size: 30px;">✕</button>
+        </div>
+        <div id="scanStepText" class="scanner-instruction">Scan Front of Card</div>
+        
+        <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+            <div id="scanPreview" style="width:100%; aspect-ratio:1.586; border: 2px dashed var(--ios-accent); border-radius:16px; background: #1c1c1e; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                <span id="previewPlaceholder" style="color:var(--ios-text-secondary)">Waiting for camera...</span>
+            </div>
+        </div>
+
+        <div class="camera-trigger" onclick="capturePhoto()">
+            <div></div>
+        </div>
+        <input type="file" id="hiddenCamera" accept="image/*" capture="environment" style="display:none">
+    </div>
+
+    <div id="statusPill" class="status-pill">Processing...</div>
+
     <script>
-        const cameraInput = document.getElementById('cameraInput');
-        const statusText = document.getElementById('status');
-        const previewSection = document.getElementById('previewSection');
-        const previewCardContainer = document.getElementById('previewCardContainer');
-        const saveBtn = document.getElementById('saveBtn');
-        const walletContainer = document.getElementById('walletContainer');
+        const statusPill = document.getElementById('statusPill');
+        const walletStack = document.getElementById('walletStack');
+        const hiddenCamera = document.getElementById('hiddenCamera');
+        const scannerOverlay = document.getElementById('scannerOverlay');
+        const scanStepText = document.getElementById('scanStepText');
+        const scanPreview = document.getElementById('scanPreview');
 
-        let currentCardData = null;
-
-        // --- 1. API KEY HANDLING ---
-        function checkApiKeyOnLoad() {
-            if (!localStorage.getItem('iris_gemini_key')) {
-                promptForKey();
-            }
-        }
-
-        function promptForKey() {
-            const key = prompt("Please enter your Gemini API Key:");
-            if (key && key.trim().length > 10) {
-                localStorage.setItem('iris_gemini_key', key.trim());
-                statusText.innerText = "Key Saved.";
-                setTimeout(() => { statusText.innerText = ""; }, 2000);
-            }
-        }
-
-        document.getElementById('resetKeyBtn').addEventListener('click', () => {
-            if (localStorage.getItem('iris_gemini_key')) {
-                if (confirm("Remove saved API Key?")) {
-                    localStorage.removeItem('iris_gemini_key');
-                    location.reload();
-                }
-            } else {
-                promptForKey();
-            }
-        });
-
-        window.addEventListener('load', checkApiKeyOnLoad);
-
-        // --- 2. DATABASE ---
         let db;
-        const dbReq = indexedDB.open("IrisWalletDB", 6);
-        dbReq.onupgradeneeded = e => {
-            db = e.target.result;
-            if(!db.objectStoreNames.contains("digital_cards")) {
-                db.createObjectStore("digital_cards", { keyPath: "id" });
-            }
+        let scanSession = { step: 0, front: null, back: null };
+        let activeCardId = null;
+
+        // 1. DATABASE INIT
+        const req = indexedDB.open("IrisWalletV2", 1);
+        req.onupgradeneeded = e => {
+            const store = e.target.result.createObjectStore("cards", { keyPath: "id" });
         };
-        dbReq.onsuccess = e => { db = e.target.result; loadWallet(); };
+        req.onsuccess = e => { db = e.target.result; renderWallet(); };
 
-        // --- 3. SCANNING ---
-        cameraInput.addEventListener('change', async (event) => {
-            const apiKey = localStorage.getItem('iris_gemini_key');
-            const file = event.target.files[0];
-            if (!file || !apiKey) return;
+        // 2. API KEY HELPERS
+        function toggleKey() {
+            const key = prompt("Enter Gemini API Key:");
+            if(key) localStorage.setItem('iris_key', key.trim());
+        }
 
-            statusText.innerText = "Analyzing with Gemini 3 AI...";
-            previewSection.style.display = 'none';
+        // 3. SCANNING FLOW
+        function startScanning() {
+            if(!localStorage.getItem('iris_key')) return toggleKey();
+            scanSession = { step: 0, front: null, back: null };
+            scanStepText.innerText = "Scan Front of Card";
+            scannerOverlay.classList.add('active');
+        }
 
+        function closeScanner() { scannerOverlay.classList.remove('active'); }
+
+        function capturePhoto() { hiddenCamera.click(); }
+
+        hiddenCamera.onchange = (e) => {
+            const file = e.target.files[0];
+            if(!file) return;
+            
             const reader = new FileReader();
             reader.readAsDataURL(file);
-            reader.onload = async () => {
-                const base64Data = reader.result.split(',')[1];
-                previewCardContainer.innerHTML = `<div class="wallet-card" style="background-image: url('${reader.result}')"></div>`;
-                previewSection.style.display = 'block';
-
-                try {
-                    // Using the new Gemini 3 Flash model
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{
-                                parts: [
-                                    { text: "Identify this ID. Return JSON: { \"type\": \"PAN Card\"|\"Aadhar Card\"|\"Credit Card\"|\"Voter ID\", \"number\": \"string\", \"name\": \"string\" }" },
-                                    { inline_data: { mime_type: "image/jpeg", data: base64Data } }
-                                ]
-                            }]
-                        })
-                    });
-
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error.message || "API Error");
-                    }
-
-                    const result = await response.json();
-                    let jsonText = result.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
-                    const parsed = JSON.parse(jsonText);
-
-                    currentCardData = {
-                        id: Date.now(),
-                        type: parsed.type || "ID Card",
-                        number: parsed.number || "Unknown",
-                        name: parsed.name || "Unknown",
-                        theme: getTheme(parsed.type),
-                        icon: getIcon(parsed.type)
-                    };
-
-                    previewCardContainer.innerHTML = generateCardHTML(currentCardData);
-                    saveBtn.style.display = 'block';
-                    statusText.innerText = "Success!";
-                    setTimeout(() => { statusText.innerText = ""; }, 2000);
-                } catch (e) {
-                    statusText.innerText = "Error: " + e.message;
+            reader.onload = () => {
+                if(scanSession.step === 0) {
+                    scanSession.front = reader.result;
+                    scanSession.step = 1;
+                    scanStepText.innerText = "Scan Back of Card";
+                    scanPreview.innerHTML = `<img src="${reader.result}" style="width:100%; height:100%; object-fit:cover;">`;
+                } else {
+                    scanSession.back = reader.result;
+                    processCard();
                 }
             };
-        });
+        };
 
-        function getTheme(t) {
-            t = (t || "").toLowerCase();
+        async function processCard() {
+            closeScanner();
+            showStatus("Analyzing with Gemini AI...");
+            
+            const apiKey = localStorage.getItem('iris_key');
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [
+                                { text: "Extract card data into JSON. Keys: type(PAN, Aadhar, Credit, Voter, ID), number, name, dob, expiry. Use NULL if missing." },
+                                { inline_data: { mime_type: "image/jpeg", data: scanSession.front.split(',')[1] } }
+                            ]
+                        }]
+                    })
+                });
+
+                const res = await response.json();
+                const jsonText = res.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
+                const data = JSON.parse(jsonText);
+
+                const newCard = {
+                    id: Date.now(),
+                    ...data,
+                    frontImg: scanSession.front,
+                    backImg: scanSession.back
+                };
+
+                const tx = db.transaction("cards", "readwrite");
+                tx.objectStore("cards").add(newCard);
+                tx.oncomplete = () => {
+                    showStatus("Card Added Successfully");
+                    renderWallet();
+                };
+            } catch (err) {
+                showStatus("Scanning Failed. Try again.");
+            }
+        }
+
+        // 4. RENDERING & UI LOGIC
+        function renderWallet() {
+            walletStack.innerHTML = '';
+            const tx = db.transaction("cards", "readonly");
+            tx.objectStore("cards").getAll().onsuccess = e => {
+                const cards = e.target.result.reverse();
+                if(cards.length === 0) {
+                    walletStack.innerHTML = `<div style="text-align:center; padding-top:100px; color:var(--ios-text-secondary)">Your wallet is empty.<br>Tap + to scan a card.</div>`;
+                    return;
+                }
+                cards.forEach((c, idx) => {
+                    const cardTheme = getThemeClass(c.type);
+                    const el = document.createElement('div');
+                    el.className = 'card-wrapper';
+                    el.style.setProperty('--zi', cards.length - idx);
+                    el.innerHTML = `
+                        <div class="card-inner" onclick="handleCardClick(this, ${c.id})">
+                            <div class="card-front ${cardTheme}">
+                                <div class="card-row">
+                                    <div class="card-type-label">${c.type}</div>
+                                    <div class="card-chip"></div>
+                                </div>
+                                <div class="card-number-display">
+                                    ${c.number || '•••• •••• ••••'}
+                                    <button class="copy-btn" onclick="copyText('${c.number}', event)">📋</button>
+                                </div>
+                                <div class="card-row">
+                                    <div class="card-info-group">
+                                        <div class="info-label">Card Holder</div>
+                                        <div class="info-value">
+                                            ${c.name || 'CITIZEN'}
+                                            <button class="copy-btn" onclick="copyText('${c.name}', event)">📋</button>
+                                        </div>
+                                    </div>
+                                    <div class="card-info-group" style="text-align:right">
+                                        <div class="info-label">Expiry / DOB</div>
+                                        <div class="info-value">${c.expiry || c.dob || '--/--'}</div>
+                                    </div>
+                                </div>
+                                <div class="delete-btn-ui" onclick="deleteCard(${c.id}, event)" style="position:absolute; top:10px; right:10px; opacity:0.3; font-size:12px;">✕ Delete</div>
+                            </div>
+                            <div class="card-back" style="background-image:url(${c.backImg}); background-size:cover; background-position:center;">
+                                <div style="background:rgba(0,0,0,0.5); width:100%; height:100%; padding:20px; backdrop-filter:blur(5px);">
+                                    <div class="card-type-label" style="color:white">REVERSE SIDE</div>
+                                    <p style="font-size:10px; opacity:0.8; margin-top:100px;">Double-tap to flip back</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    walletStack.appendChild(el);
+                });
+            };
+        }
+
+        function handleCardClick(inner, id) {
+            const wrapper = inner.parentElement;
+            
+            // If already expanded, check for flip or collapse
+            if(wrapper.classList.contains('active')) {
+                // If it's a double click speed check or second tap
+                if(activeCardId === id) {
+                    wrapper.classList.toggle('flipped');
+                } else {
+                    activeCardId = id;
+                }
+            } else {
+                // Expand the card
+                document.querySelectorAll('.card-wrapper').forEach(w => w.classList.remove('active', 'flipped'));
+                wrapper.classList.add('active');
+                activeCardId = id;
+            }
+        }
+
+        function deleteCard(id, e) {
+            e.stopPropagation();
+            if(!confirm("Delete this card forever?")) return;
+            const tx = db.transaction("cards", "readwrite");
+            tx.objectStore("cards").delete(id);
+            tx.oncomplete = () => renderWallet();
+        }
+
+        function getThemeClass(type) {
+            const t = String(type).toLowerCase();
             if(t.includes('pan')) return 'theme-pan';
             if(t.includes('aadhar')) return 'theme-aadhar';
             if(t.includes('credit')) return 'theme-credit';
@@ -236,75 +365,29 @@
             return 'theme-generic';
         }
 
-        function getIcon(t) {
-            t = (t || "").toLowerCase();
-            if(t.includes('pan')) return '🇮🇳';
-            if(t.includes('aadhar')) return '🦁';
-            if(t.includes('voter')) return '🗳️';
-            return '💳';
+        function copyText(text, e) {
+            e.stopPropagation();
+            const el = document.createElement('textarea');
+            el.value = text;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            showStatus("Copied to clipboard");
         }
 
-        function generateCardHTML(c) {
-            return `
-                <div class="wallet-card ${c.theme}">
-                    <div class="card-header"><div class="card-title">${c.type}</div><div>${c.icon}</div></div>
-                    <div class="card-body"><div class="card-number">${c.number}</div></div>
-                    <div class="card-footer">
-                        <div><div style="font-size:10px; opacity:0.7;">HOLDER</div><div class="card-value">${c.name}</div></div>
-                    </div>
-                </div>`;
+        function showStatus(msg) {
+            statusPill.innerText = msg;
+            statusPill.style.display = 'block';
+            setTimeout(() => { statusPill.style.display = 'none'; }, 3000);
         }
 
-        saveBtn.addEventListener('click', () => {
-            const tx = db.transaction("digital_cards", "readwrite");
-            tx.objectStore("digital_cards").add(currentCardData);
-            tx.oncomplete = () => {
-                previewSection.style.display = 'none';
-                loadWallet();
-            };
-        });
+        // PREVENT BOUNCY SCROLLING ON IOS
+        document.addEventListener('touchmove', function(e) {
+            if (e.target.closest('.scroll-container')) return;
+            e.preventDefault();
+        }, { passive: false });
 
-        function loadWallet() {
-            walletContainer.innerHTML = '';
-            const tx = db.transaction("digital_cards", "readonly");
-            tx.objectStore("digital_cards").getAll().onsuccess = e => {
-                const cards = e.target.result.reverse();
-                if(cards.length === 0) {
-                    walletContainer.innerHTML = '<p style="text-align:center; color:#8E8E93; margin-top:40px;">Your wallet is empty.</p>';
-                }
-                cards.forEach((c, i) => {
-                    const w = document.createElement('div');
-                    w.className = 'swipe-wrapper';
-                    w.style.zIndex = cards.length - i;
-                    w.innerHTML = `<div class="delete-btn" onclick="deleteCard(${c.id})">Delete</div>${generateCardHTML(c)}`;
-                    walletContainer.appendChild(w);
-                    applySwipe(w);
-                });
-            };
-        }
-
-        function deleteCard(id) {
-            const tx = db.transaction("digital_cards", "readwrite");
-            tx.objectStore("digital_cards").delete(id);
-            tx.oncomplete = () => loadWallet();
-        }
-
-        function applySwipe(w) {
-            const card = w.querySelector('.wallet-card');
-            const del = w.querySelector('.delete-btn');
-            let start = 0;
-            card.addEventListener('touchstart', e => start = e.touches[0].clientX);
-            card.addEventListener('touchmove', e => {
-                let diff = start - e.touches[0].clientX;
-                if (diff > 20 && diff < 100) { card.style.transform = `translateX(-${diff}px)`; del.style.opacity = diff/100; }
-            });
-            card.addEventListener('touchend', e => {
-                let diff = start - e.changedTouches[0].clientX;
-                if (diff > 50) { card.style.transform = 'translateX(-90px)'; del.style.opacity = 1; }
-                else { card.style.transform = 'translateX(0)'; del.style.opacity = 0; }
-            });
-            card.addEventListener('click', () => w.classList.toggle('expanded'));
-        }
     </script>
 </body>
 </html>
