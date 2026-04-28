@@ -1,310 +1,350 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Iris Wallet">
-    <title>Iris Wallet</title>
-    
-    <style>
-        :root {
-            --iris-primary: #5A32FA;
-            --bg-black: #000000;
-            --surface-gray: #1C1C1E;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
-        html, body {
-            margin: 0; padding: 0; width: 100%; height: 100%;
-            background-color: var(--bg-black); color: #FFFFFF;
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
-            overflow: hidden; overscroll-behavior-y: none; position: fixed;
-        }
+<title>Iris Wallet</title>
 
-        .app-container {
-            width: 100%; height: 100%;
-            overflow-y: auto; -webkit-overflow-scrolling: touch;
-            padding-bottom: 80px;
-        }
+<style>
+:root {
+    --bg: #000;
+    --card: rgba(255,255,255,0.08);
+    --border: rgba(255,255,255,0.15);
+    --text-secondary: #8E8E93;
+    --primary: #0A84FF;
+}
 
-        .header {
-            padding: calc(env(safe-area-inset-top, 47px) + 20px) 24px 20px;
-            display: flex; justify-content: space-between; align-items: flex-end;
-            background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            position: sticky; top: 0; z-index: 100; border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
-        }
+* { box-sizing: border-box; }
 
-        .header h1 { margin: 0; font-size: 34px; font-weight: 700; letter-spacing: -0.5px; }
-        .header-actions { display: flex; gap: 15px; align-items: center; }
-        .reset-key-btn { background: none; border: none; color: #8E8E93; font-size: 20px; cursor: pointer; padding: 5px; }
+html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--bg);
+    color: white;
+    font-family: -apple-system, BlinkMacSystemFont;
+    overflow-x: hidden;
+}
 
-        .add-btn-container { position: relative; }
-        .add-btn {
-            background: var(--surface-gray); color: var(--iris-primary);
-            width: 36px; height: 36px; border-radius: 18px;
-            display: flex; justify-content: center; align-items: center;
-            font-size: 24px; font-weight: 500; cursor: pointer;
-        }
-        input[type="file"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+/* Layout */
+.app {
+    height: 100%;
+    overflow-y: auto;
+    padding-bottom: 100px;
+}
 
-        .content { padding: 24px; }
-        #status { font-size: 14px; color: #8E8E93; text-align: center; margin-bottom: 20px; min-height: 20px; font-weight: 500; }
+/* Header */
+.header {
+    position: sticky;
+    top: 0;
+    padding: 20px;
+    padding-top: calc(env(safe-area-inset-top) + 10px);
+    backdrop-filter: blur(30px);
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
 
-        #walletContainer { display: flex; flex-direction: column; padding-top: 10px; }
+h1 {
+    margin: 0;
+    font-size: 30px;
+}
 
-        .swipe-wrapper {
-            position: relative; width: 100%; margin-bottom: -110px;
-            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-        }
-        .swipe-wrapper:last-child { margin-bottom: 40px; }
-        .swipe-wrapper.expanded { transform: translateY(-20px); margin-bottom: 20px; z-index: 50; }
+/* Add Button */
+.add {
+    width: 40px;
+    height: 40px;
+    border-radius: 20px;
+    background: var(--card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    position: relative;
+}
 
-        .delete-btn {
-            position: absolute; right: 0; top: 0; bottom: 0; width: 80px;
-            background-color: #FF3B30; color: white; font-weight: 600;
-            display: flex; align-items: center; justify-content: center;
-            border-radius: 16px; z-index: 1; opacity: 0;
-        }
+.add input {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+}
 
-        .wallet-card {
-            width: 100%; aspect-ratio: 1.586; border-radius: 16px; padding: 24px; box-sizing: border-box;
-            display: flex; flex-direction: column; justify-content: space-between;
-            position: relative; z-index: 2; 
-            box-shadow: 0 -5px 20px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.15);
-            background-size: cover; background-position: center; transition: transform 0.3s;
-        }
+/* Cards */
+.wallet {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
 
-        .theme-pan { background: linear-gradient(135deg, #E0EAFC, #CFDEF3); color: #1a1a1a; }
-        .theme-aadhar { background: linear-gradient(135deg, #ffffff, #f0f0f0); color: #1a1a1a; border-top: 6px solid #E43D30; }
-        .theme-credit { background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; }
-        .theme-voter { background: linear-gradient(135deg, #e6f2ff, #b3d9ff); color: #1a1a1a; }
-        .theme-generic { background: linear-gradient(135deg, #2c2c2e, #1c1c1e); color: white; }
+/* Card Flip */
+.card {
+    width: 100%;
+    aspect-ratio: 1.6;
+    perspective: 1000px;
+}
 
-        .card-title { font-size: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
-        .card-number { font-size: 24px; font-family: "SF Mono", monospace; letter-spacing: 2px; text-align: center; margin: 20px 0; }
-        .card-value { font-size: 16px; font-weight: 500; text-transform: uppercase; }
+.inner {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transition: 0.6s;
+    transform-style: preserve-3d;
+}
 
-        .btn-primary { 
-            background: var(--iris-primary); color: white; width: 100%; padding: 16px; 
-            border-radius: 14px; font-size: 17px; font-weight: 600; border: none; 
-            margin-top: 20px; cursor: pointer; display: none; 
-        }
-    </style>
+.inner.flipped {
+    transform: rotateY(180deg);
+}
+
+.face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 20px;
+    padding: 20px;
+    background: var(--card);
+    backdrop-filter: blur(30px);
+    border: 1px solid var(--border);
+    backface-visibility: hidden;
+}
+
+.back {
+    transform: rotateY(180deg);
+}
+
+.title {
+    font-size: 13px;
+    opacity: 0.7;
+}
+
+.number {
+    font-size: 22px;
+    margin: 15px 0;
+}
+
+.field {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
+.copy {
+    background: none;
+    border: none;
+    color: var(--primary);
+    font-size: 14px;
+}
+
+/* Status */
+.status {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-top: 10px;
+}
+</style>
 </head>
+
 <body>
 
-    <div class="app-container">
-        <div class="header">
-            <h1>Iris Wallet</h1>
-            <div class="header-actions">
-                <button class="reset-key-btn" id="resetKeyBtn">🔑</button>
-                <div class="add-btn-container">
-                    <div class="add-btn">+</div>
-                    <input type="file" accept="image/*" capture="environment" id="cameraInput">
-                </div>
-            </div>
-        </div>
+<div class="app">
 
-        <div class="content">
-            <div id="status"></div>
-            
-            <div id="previewSection" style="display:none; margin-bottom: 40px;">
-                <div id="previewCardContainer"></div>
-                <button id="saveBtn" class="btn-primary">Add to Wallet</button>
-            </div>
-
-            <div id="walletContainer"></div>
+    <div class="header">
+        <h1>Iris</h1>
+        <div class="add">
+            +
+            <input type="file" accept="image/*" capture="environment" id="camera">
         </div>
     </div>
 
-    <script>
-        const cameraInput = document.getElementById('cameraInput');
-        const statusText = document.getElementById('status');
-        const previewSection = document.getElementById('previewSection');
-        const previewCardContainer = document.getElementById('previewCardContainer');
-        const saveBtn = document.getElementById('saveBtn');
-        const walletContainer = document.getElementById('walletContainer');
+    <div class="status" id="status"></div>
 
-        let currentCardData = null;
+    <div class="wallet" id="wallet"></div>
 
-        // --- 1. API KEY HANDLING ---
-        function checkApiKeyOnLoad() {
-            if (!localStorage.getItem('iris_gemini_key')) {
-                promptForKey();
-            }
-        }
+</div>
 
-        function promptForKey() {
-            const key = prompt("Please enter your Gemini API Key:");
-            if (key && key.trim().length > 10) {
-                localStorage.setItem('iris_gemini_key', key.trim());
-                statusText.innerText = "Key Saved.";
-                setTimeout(() => { statusText.innerText = ""; }, 2000);
-            }
-        }
+<script>
+const camera = document.getElementById('camera');
+const wallet = document.getElementById('wallet');
+const statusText = document.getElementById('status');
 
-        document.getElementById('resetKeyBtn').addEventListener('click', () => {
-            if (localStorage.getItem('iris_gemini_key')) {
-                if (confirm("Remove saved API Key?")) {
-                    localStorage.removeItem('iris_gemini_key');
-                    location.reload();
-                }
-            } else {
-                promptForKey();
-            }
-        });
+let captureStep = 'front';
+let temp = {};
+let db;
 
-        window.addEventListener('load', checkApiKeyOnLoad);
+/* DB */
+const req = indexedDB.open("iris", 1);
+req.onupgradeneeded = e => {
+    e.target.result.createObjectStore("cards", { keyPath: "id" });
+};
+req.onsuccess = e => {
+    db = e.target.result;
+    load();
+};
 
-        // --- 2. DATABASE ---
-        let db;
-        const dbReq = indexedDB.open("IrisWalletDB", 6);
-        dbReq.onupgradeneeded = e => {
-            db = e.target.result;
-            if(!db.objectStoreNames.contains("digital_cards")) {
-                db.createObjectStore("digital_cards", { keyPath: "id" });
-            }
-        };
-        dbReq.onsuccess = e => { db = e.target.result; loadWallet(); };
+/* Capture Flow */
+camera.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-        // --- 3. SCANNING ---
-        cameraInput.addEventListener('change', async (event) => {
-            const apiKey = localStorage.getItem('iris_gemini_key');
-            const file = event.target.files[0];
-            if (!file || !apiKey) return;
+    if (captureStep === 'front') {
+        temp.front = file;
+        captureStep = 'back';
+        statusText.innerText = "Capture back side";
+        return;
+    }
 
-            statusText.innerText = "Analyzing with Gemini 3 AI...";
-            previewSection.style.display = 'none';
+    temp.back = file;
+    captureStep = 'front';
+    processCard();
+});
 
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = async () => {
-                const base64Data = reader.result.split(',')[1];
-                previewCardContainer.innerHTML = `<div class="wallet-card" style="background-image: url('${reader.result}')"></div>`;
-                previewSection.style.display = 'block';
+/* Gemini OCR */
+async function processCard() {
+    statusText.innerText = "Analyzing...";
 
-                try {
-                    // Using the new Gemini 3 Flash model
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{
-                                parts: [
-                                    { text: "Identify this ID. Return JSON: { \"type\": \"PAN Card\"|\"Aadhar Card\"|\"Credit Card\"|\"Voter ID\", \"number\": \"string\", \"name\": \"string\" }" },
-                                    { inline_data: { mime_type: "image/jpeg", data: base64Data } }
-                                ]
-                            }]
-                        })
-                    });
+    const key = localStorage.getItem("gemini");
+    if (!key) {
+        const k = prompt("Enter Gemini API key");
+        localStorage.setItem("gemini", k);
+    }
 
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error.message || "API Error");
+    const frontBase64 = await toBase64(temp.front);
+
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${localStorage.getItem("gemini")}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            contents: [{
+                parts: [
+                    {
+                        text: `
+Extract all fields from this ID.
+
+Return JSON:
+{
+"type":"",
+"number":"",
+"name":"",
+"dob":"",
+"gender":"",
+"address":"",
+"expiry":""
+}
+`
+                    },
+                    {
+                        inline_data: {
+                            mime_type: "image/jpeg",
+                            data: frontBase64
+                        }
                     }
+                ]
+            }]
+        })
+    });
 
-                    const result = await response.json();
-                    let jsonText = result.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
-                    const parsed = JSON.parse(jsonText);
+    const data = await res.json();
+    let json = JSON.parse(data.candidates[0].content.parts[0].text.replace(/```json|```/g,''));
 
-                    currentCardData = {
-                        id: Date.now(),
-                        type: parsed.type || "ID Card",
-                        number: parsed.number || "Unknown",
-                        name: parsed.name || "Unknown",
-                        theme: getTheme(parsed.type),
-                        icon: getIcon(parsed.type)
-                    };
+    const card = {
+        id: Date.now(),
+        ...json,
+        front: await toBase64(temp.front),
+        back: await toBase64(temp.back),
+        flipped: false
+    };
 
-                    previewCardContainer.innerHTML = generateCardHTML(currentCardData);
-                    saveBtn.style.display = 'block';
-                    statusText.innerText = "Success!";
-                    setTimeout(() => { statusText.innerText = ""; }, 2000);
-                } catch (e) {
-                    statusText.innerText = "Error: " + e.message;
-                }
-            };
-        });
+    save(card);
+}
 
-        function getTheme(t) {
-            t = (t || "").toLowerCase();
-            if(t.includes('pan')) return 'theme-pan';
-            if(t.includes('aadhar')) return 'theme-aadhar';
-            if(t.includes('credit')) return 'theme-credit';
-            if(t.includes('voter')) return 'theme-voter';
-            return 'theme-generic';
-        }
+/* Helpers */
+function toBase64(file) {
+    return new Promise(r => {
+        const fr = new FileReader();
+        fr.onload = () => r(fr.result.split(',')[1]);
+        fr.readAsDataURL(file);
+    });
+}
 
-        function getIcon(t) {
-            t = (t || "").toLowerCase();
-            if(t.includes('pan')) return '🇮🇳';
-            if(t.includes('aadhar')) return '🦁';
-            if(t.includes('voter')) return '🗳️';
-            return '💳';
-        }
+/* Save */
+function save(card) {
+    const tx = db.transaction("cards", "readwrite");
+    tx.objectStore("cards").add(card);
+    tx.oncomplete = load;
+}
 
-        function generateCardHTML(c) {
-            return `
-                <div class="wallet-card ${c.theme}">
-                    <div class="card-header"><div class="card-title">${c.type}</div><div>${c.icon}</div></div>
-                    <div class="card-body"><div class="card-number">${c.number}</div></div>
-                    <div class="card-footer">
-                        <div><div style="font-size:10px; opacity:0.7;">HOLDER</div><div class="card-value">${c.name}</div></div>
-                    </div>
-                </div>`;
-        }
+/* Load */
+function load() {
+    wallet.innerHTML = "";
+    const tx = db.transaction("cards", "readonly");
+    tx.objectStore("cards").getAll().onsuccess = e => {
+        e.target.result.reverse().forEach(render);
+    };
+}
 
-        saveBtn.addEventListener('click', () => {
-            const tx = db.transaction("digital_cards", "readwrite");
-            tx.objectStore("digital_cards").add(currentCardData);
-            tx.oncomplete = () => {
-                previewSection.style.display = 'none';
-                loadWallet();
-            };
-        });
+/* Render */
+function render(c) {
+    const el = document.createElement("div");
+    el.className = "card";
 
-        function loadWallet() {
-            walletContainer.innerHTML = '';
-            const tx = db.transaction("digital_cards", "readonly");
-            tx.objectStore("digital_cards").getAll().onsuccess = e => {
-                const cards = e.target.result.reverse();
-                if(cards.length === 0) {
-                    walletContainer.innerHTML = '<p style="text-align:center; color:#8E8E93; margin-top:40px;">Your wallet is empty.</p>';
-                }
-                cards.forEach((c, i) => {
-                    const w = document.createElement('div');
-                    w.className = 'swipe-wrapper';
-                    w.style.zIndex = cards.length - i;
-                    w.innerHTML = `<div class="delete-btn" onclick="deleteCard(${c.id})">Delete</div>${generateCardHTML(c)}`;
-                    walletContainer.appendChild(w);
-                    applySwipe(w);
-                });
-            };
-        }
+    el.innerHTML = `
+    <div class="inner ${c.flipped ? 'flipped' : ''}">
+        
+        <div class="face">
+            <div class="title">${c.type}</div>
+            <div class="number">${c.number}</div>
 
-        function deleteCard(id) {
-            const tx = db.transaction("digital_cards", "readwrite");
-            tx.objectStore("digital_cards").delete(id);
-            tx.oncomplete = () => loadWallet();
-        }
+            ${field("Name", c.name)}
+            ${field("DOB", c.dob)}
+            ${field("Gender", c.gender)}
 
-        function applySwipe(w) {
-            const card = w.querySelector('.wallet-card');
-            const del = w.querySelector('.delete-btn');
-            let start = 0;
-            card.addEventListener('touchstart', e => start = e.touches[0].clientX);
-            card.addEventListener('touchmove', e => {
-                let diff = start - e.touches[0].clientX;
-                if (diff > 20 && diff < 100) { card.style.transform = `translateX(-${diff}px)`; del.style.opacity = diff/100; }
-            });
-            card.addEventListener('touchend', e => {
-                let diff = start - e.changedTouches[0].clientX;
-                if (diff > 50) { card.style.transform = 'translateX(-90px)'; del.style.opacity = 1; }
-                else { card.style.transform = 'translateX(0)'; del.style.opacity = 0; }
-            });
-            card.addEventListener('click', () => w.classList.toggle('expanded'));
-        }
-    </script>
+        </div>
+
+        <div class="face back">
+            <img src="data:image/jpeg;base64,${c.back}" style="width:100%; height:100%; object-fit:cover; border-radius:20px;">
+        </div>
+
+    </div>
+    `;
+
+    el.onclick = () => flip(c.id);
+    wallet.appendChild(el);
+}
+
+function field(label, value) {
+    if (!value) return "";
+    return `
+    <div class="field">
+        <span>${value}</span>
+        <button class="copy" onclick="copy(event, '${value}')">Copy</button>
+    </div>`;
+}
+
+/* Flip */
+function flip(id) {
+    const tx = db.transaction("cards", "readwrite");
+    const store = tx.objectStore("cards");
+    const r = store.get(id);
+
+    r.onsuccess = () => {
+        const d = r.result;
+        d.flipped = !d.flipped;
+        store.put(d);
+        load();
+    };
+}
+
+/* Copy */
+function copy(e, text) {
+    e.stopPropagation();
+    navigator.clipboard.writeText(text);
+    statusText.innerText = "Copied";
+    setTimeout(()=>statusText.innerText="",1000);
+}
+</script>
+
 </body>
 </html>
