@@ -15,7 +15,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&display=swap" rel="stylesheet">
-<!-- PDF.js for ticket parsing -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
   if (window.pdfjsLib) {
@@ -47,6 +46,7 @@
   --ca: 1.5867;
   --spring: cubic-bezier(0.34, 1.4, 0.64, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-wallet: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 *, *::before, *::after {
@@ -60,17 +60,11 @@
 }
 input, textarea { -webkit-user-select: auto; user-select: auto; }
 
-html {
-  height: 100%;
-  overscroll-behavior: none;
-  overflow: hidden;
-}
+html { height: 100%; overscroll-behavior: none; overflow: hidden; }
 body {
-  width: 100vw;
-  height: 100%;
+  width: 100vw; height: 100%;
   min-height: -webkit-fill-available;
-  position: fixed;
-  top: 0; left: 0;
+  position: fixed; top: 0; left: 0;
   overflow: hidden;
   overscroll-behavior: none;
   background: var(--bg);
@@ -81,11 +75,9 @@ body {
 }
 button {
   font-family: inherit; cursor: pointer; border: none; background: none;
-  -webkit-appearance: none;
-  touch-action: manipulation;
+  -webkit-appearance: none; touch-action: manipulation;
 }
 
-/* Ambient orbs */
 .ambient { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
 .ambient-orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.5; }
 .orb1 {
@@ -103,14 +95,11 @@ button {
 
 .app {
   display: flex; flex-direction: column;
-  width: 100%;
-  height: 100dvh;
-  height: 100vh;
+  width: 100%; height: 100dvh; height: 100vh;
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
   overflow: hidden; z-index: 1;
 }
 
-/* HEADER */
 .header {
   flex-shrink: 0;
   padding: calc(var(--sat) + 14px) 22px 14px;
@@ -140,10 +129,8 @@ button {
 .key-btn {
   display: flex; align-items: center; gap: 6px;
   padding: 9px 14px;
-  background: var(--s2);
-  border: 1px solid var(--b2);
-  border-radius: 100px;
-  color: var(--t2);
+  background: var(--s2); border: 1px solid var(--b2);
+  border-radius: 100px; color: var(--t2);
   font-size: 12px; font-weight: 600;
   transition: all 0.2s var(--spring);
 }
@@ -158,15 +145,12 @@ button {
 .add-btn:active { transform: scale(0.86); }
 .add-btn svg { width: 18px; height: 18px; stroke: white; fill: none; stroke-width: 2.5; stroke-linecap: round; }
 
-/* SCROLL */
 .scroll-area {
   flex: 1; min-height: 0;
   overflow-y: scroll; overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
-  overscroll-behavior-x: none;
-  scrollbar-width: none;
-  touch-action: pan-y;
+  overscroll-behavior-y: contain; overscroll-behavior-x: none;
+  scrollbar-width: none; touch-action: pan-y;
 }
 .scroll-area::-webkit-scrollbar { display: none; }
 
@@ -174,61 +158,58 @@ button {
 .stats-label { font-size: 11px; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; color: var(--t3); margin-bottom: 6px; }
 .stats-sub { font-size: 13px; color: var(--t2); margin-top: 6px; }
 
-/* APPLE WALLET STYLE STACK */
+/* APPLE WALLET STACK */
 .wallet-stack {
   position: relative;
   padding: 20px 16px calc(var(--sab) + 110px);
   min-height: 100%;
 }
-.wallet-stack.expanded-mode {
-  padding-top: 80px;
-}
-
 .stack-card {
   position: relative;
   width: 100%;
   aspect-ratio: var(--ca);
-  margin-bottom: -76%; /* this creates the stacked overlap */
-  transition: transform 0.55s var(--ease-out), margin-bottom 0.55s var(--ease-out), opacity 0.4s ease;
-  will-change: transform;
-  animation: cardAppear 0.5s var(--ease-out) both;
+  margin-bottom: -76%;
+  transition:
+    margin-bottom 0.65s var(--ease-wallet),
+    transform 0.5s var(--ease-wallet),
+    opacity 0.4s ease;
+  will-change: transform, margin-bottom;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
   cursor: pointer;
+  contain: layout style;
 }
 .stack-card:last-child { margin-bottom: 0; }
-
-/* When expanded mode, all cards spread out */
-.wallet-stack.expanded-mode .stack-card {
-  margin-bottom: 14px;
-}
-.wallet-stack.expanded-mode .stack-card:last-child {
-  margin-bottom: 0;
-}
-
-/* Selected card scrolls to top of view */
-.stack-card.selected {
-  z-index: 100;
-}
-
+.stack-card.appear { animation: cardAppear 0.55s var(--ease-out) both; }
 @keyframes cardAppear {
-  from { opacity: 0; transform: translateY(24px) scale(0.97); }
+  from { opacity: 0; transform: translateY(28px) scale(0.96); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
+.wallet-stack.expanded-mode .stack-card { margin-bottom: 14px; }
+.wallet-stack.expanded-mode .stack-card:last-child { margin-bottom: 0; }
+.stack-card.selected { z-index: 100; }
 
 .card-scene {
   width: 100%; height: 100%;
-  perspective: 1400px;
+  perspective: 1600px;
+  -webkit-perspective: 1600px;
 }
 .card-flipper {
   width: 100%; height: 100%;
   position: relative;
   transform-style: preserve-3d;
-  transition: transform 0.72s cubic-bezier(0.34, 1.25, 0.64, 1);
+  -webkit-transform-style: preserve-3d;
+  transition: transform 0.7s cubic-bezier(0.45, 0.05, 0.25, 1);
+  will-change: transform;
 }
 .stack-card.flipped .card-flipper { transform: rotateY(180deg); }
 
 .card-face {
   position: absolute; width: 100%; height: 100%;
-  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
   border-radius: var(--cr);
   overflow: hidden;
   box-shadow:
@@ -237,8 +218,12 @@ button {
     0 20px 60px rgba(0,0,0,0.7),
     0 8px 20px rgba(0,0,0,0.4);
   border: 1px solid rgba(255,255,255,0.10);
+  -webkit-transform: translateZ(0);
 }
-.card-face.back { transform: rotateY(180deg); }
+.card-face.back {
+  transform: rotateY(180deg);
+  -webkit-transform: rotateY(180deg);
+}
 
 /* THEMES */
 .theme-credit .card-face.front { background: linear-gradient(148deg,#090918 0%,#131340 45%,#1a1050 100%); }
@@ -251,12 +236,10 @@ button {
   background-size: 24px 24px;
 }
 @keyframes holoShift { 0%{background-position:0% 50%} 100%{background-position:100% 50%} }
-
 .theme-aadhaar .card-face.front { background: linear-gradient(148deg,#003087 0%,#0050B3 55%,#0072CE 100%); }
 .theme-aadhaar .deco-circle { position:absolute; top:-40%; right:-15%; width:90%; height:90%; border-radius:50%;
   background: radial-gradient(circle, rgba(255,255,255,0.07) 0%, transparent 60%);
 }
-
 .theme-pan .card-face.front { background: linear-gradient(148deg,#F5EDD8 0%,#EAD9B8 100%); color: #1C1206; }
 .theme-voter .card-face.front { background: linear-gradient(148deg,#14012B 0%,#2D1275 55%,#1A4068 100%); }
 .theme-driving .card-face.front { background: linear-gradient(148deg,#0A2416 0%,#134A2C 55%,#1A6040 100%); }
@@ -268,7 +251,6 @@ button {
 .theme-movie .card-face.front { background: linear-gradient(148deg,#1A0A1F 0%,#451050 55%,#8030A0 100%); }
 .theme-generic .card-face.front { background: linear-gradient(148deg,#0D0D1E 0%,#1A1535 55%,#0E1A35 100%); }
 
-/* CARD CONTENT */
 .cf {
   position: relative; z-index: 2;
   width: 100%; height: 100%;
@@ -282,8 +264,7 @@ button {
   font-family: 'SF Mono', 'Menlo', 'Courier New', monospace;
   font-size: 15px; letter-spacing: 1.5px; font-weight: 600;
   display: flex; align-items: center; gap: 10px;
-  margin-top: 10px;
-  word-break: break-all;
+  margin-top: 10px; word-break: break-all;
 }
 .cf-num-text { flex: 1; min-width: 0; }
 .cf-bot { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
@@ -296,14 +277,12 @@ button {
 
 .chip-wrap { margin-bottom: 2px; }
 
-/* COPY BUTTON */
 .cp-btn {
   padding: 6px 7px;
   background: rgba(255,255,255,0.18);
   border-radius: 8px;
   color: inherit; display: inline-flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  transition: all 0.15s;
+  flex-shrink: 0; transition: all 0.15s;
   min-width: 24px; min-height: 24px;
 }
 .cp-btn:active { background: rgba(255,255,255,0.35); transform: scale(0.86); }
@@ -318,51 +297,80 @@ button {
 }
 
 /* CARD BACK */
-.cb { width: 100%; height: 100%; display: flex; flex-direction: column; position: relative; overflow: hidden; border-radius: var(--cr); }
-.cb-credit { background: linear-gradient(148deg,#090918 0%,#141440 100%); }
-.cb-magstripe { width: 100%; height: 38px; margin-top: 22px; flex-shrink: 0; background: linear-gradient(135deg,#1a1a1a 0%,#2a2a2a 50%,#1a1a1a 100%); }
-.cb-body { flex: 1; padding: 10px 18px 14px; display: flex; flex-direction: column; justify-content: space-between; }
-.cb-sigstrip {
-  background: repeating-linear-gradient(-45deg, rgba(255,255,255,0.04), rgba(255,255,255,0.04) 2px, rgba(255,255,255,0.01) 2px, rgba(255,255,255,0.01) 8px);
-  border-radius: 5px; padding: 8px 10px;
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+.cb {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  position: relative; overflow: hidden;
+  border-radius: var(--cr);
 }
-.cb-siglabel { font-size: 7px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--t3); }
-.cb-sigsub { font-size: 9px; letter-spacing: 1.5px; color: var(--t4); margin-top: 2px; }
+.cb-credit { background: linear-gradient(148deg,#0a0a18 0%,#161640 100%); }
+.cb-magstripe {
+  width: 100%; height: 42px; margin-top: 26px; flex-shrink: 0;
+  background: linear-gradient(180deg, #000 0%, #1a1a1a 50%, #000 100%);
+  border-top: 1px solid rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.cb-body { flex: 1; padding: 14px 18px 14px; display: flex; flex-direction: column; gap: 10px; }
+.cb-sigstrip {
+  background: repeating-linear-gradient(-45deg, #f0f0f0, #f0f0f0 4px, #e8e8e8 4px, #e8e8e8 8px);
+  border-radius: 4px; padding: 10px 12px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  height: 44px;
+}
+.cb-siglabel { font-size: 8px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #444; }
+.cb-sigsub { font-size: 9px; letter-spacing: 1px; color: #777; margin-top: 2px; font-style: italic; }
 .cb-cvv-box {
   background: white; color: #000;
-  padding: 4px 10px; border-radius: 4px;
-  font-family: 'SF Mono', monospace; font-size: 14px; font-weight: 700; letter-spacing: 3px;
+  padding: 5px 10px; border-radius: 3px;
+  font-family: 'SF Mono', monospace; font-size: 14px; font-weight: 700; letter-spacing: 2px;
   flex-shrink: 0; display: flex; align-items: center; gap: 6px;
+  border: 1px solid rgba(0,0,0,0.08);
 }
-.cb-cvv-label { font-size: 7px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--t3); text-align: right; margin-bottom: 3px; }
-.cb-foot { display: flex; justify-content: space-between; align-items: flex-end; }
-.cb-bankname { font-size: 8px; font-weight: 600; letter-spacing: 0.5px; color: var(--t4); }
-.cb-barcode { display: flex; align-items: flex-end; gap: 1.5px; height: 22px; opacity: 0.25; }
+.cb-cvv-box .cp-btn { background: rgba(0,0,0,0.08); color: #000; }
+.cb-info-row {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px; padding: 8px 10px;
+}
+.cb-info-label { font-size: 7.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,0.4); margin-bottom: 3px; }
+.cb-info-val { font-size: 11px; color: rgba(255,255,255,0.75); line-height: 1.4; word-break: break-word; }
+.cb-foot { display: flex; justify-content: space-between; align-items: flex-end; margin-top: auto; }
+.cb-bankname { font-size: 8px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,0.35); }
+.cb-barcode { display: flex; align-items: flex-end; gap: 1.5px; height: 26px; opacity: 0.4; }
 .cb-barcode span { background: white; border-radius: 1px; }
 
-.cb-id { padding: 16px 18px 16px; display: flex; flex-direction: column; gap: 10px; height: 100%; }
-.cb-id-header { font-size: 8px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--t3); }
-.cb-id-field { display: flex; align-items: flex-start; gap: 8px; }
+.cb-id { padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 10px; height: 100%; }
+.cb-id-header { font-size: 8px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.45); padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.cb-id-field {
+  display: flex; align-items: flex-start; gap: 8px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
 .cb-id-field-content { flex: 1; min-width: 0; }
-.cb-id-label { font-size: 7.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--t3); margin-bottom: 3px; }
-.cb-id-val { font-size: 11.5px; font-weight: 500; line-height: 1.45; color: var(--t2); word-break: break-word; }
+.cb-id-label { font-size: 7.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,0.45); margin-bottom: 3px; }
+.cb-id-val { font-size: 11.5px; font-weight: 500; line-height: 1.45; color: rgba(255,255,255,0.85); word-break: break-word; }
 .cb-qr-placeholder {
-  width: 46px; height: 46px;
-  border: 1.5px solid rgba(255,255,255,0.18); border-radius: 6px;
+  width: 50px; height: 50px;
+  background: white; border-radius: 6px;
   display: flex; align-items: center; justify-content: center;
-  opacity: 0.35; flex-shrink: 0;
+  flex-shrink: 0; padding: 4px;
 }
 
-.cb-pan { background: linear-gradient(148deg,#F5EDD8 0%,#EAD9B8 100%); color: #2D1A04; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
-.cb-pan .cb-id-label { color: #2D1A04; opacity: 0.5; }
-.cb-pan .cb-id-val { color: #2D1A04; opacity: 0.8; }
-.cb-pan .cb-id-header { color: #2D1A04; opacity: 0.4; }
-.cb-pan-barcode { display: flex; align-items: flex-end; gap: 1.5px; height: 22px; opacity: 0.2; }
+.cb-pan {
+  background: linear-gradient(148deg,#F5EDD8 0%,#EAD9B8 100%);
+  color: #2D1A04;
+  padding: 18px; display: flex; flex-direction: column; gap: 10px;
+}
+.cb-pan .cb-id-header { color: #2D1A04; opacity: 0.5; border-bottom-color: rgba(45,26,4,0.15); }
+.cb-pan .cb-id-field { background: rgba(45,26,4,0.06); }
+.cb-pan .cb-id-label { color: #2D1A04; opacity: 0.55; }
+.cb-pan .cb-id-val { color: #2D1A04; opacity: 0.9; }
+.cb-pan-barcode { display: flex; align-items: flex-end; gap: 1.5px; height: 26px; opacity: 0.35; }
 .cb-pan-barcode span { background: #2D1A04; border-radius: 1px; }
-.cb-pan .cp-btn { background: rgba(0,0,0,0.12); }
+.cb-pan .cp-btn { background: rgba(45,26,4,0.12); }
 
-/* TICKET / PASS LAYOUT */
+/* TICKET FRONT */
 .cf-ticket {
   position: relative; z-index: 2; width: 100%; height: 100%;
   padding: 16px 20px;
@@ -379,11 +387,10 @@ button {
 .tk-flabel { font-size: 7px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; opacity: 0.5; margin-bottom: 2px; }
 .tk-fval { font-size: 11px; font-weight: 600; word-break: break-word; }
 
-/* ACTION BAR */
 .card-actions {
   display: flex; gap: 8px;
   height: 0; overflow: hidden; opacity: 0;
-  transition: all 0.38s var(--ease-out);
+  transition: height 0.45s var(--ease-wallet), opacity 0.3s ease, margin-top 0.45s var(--ease-wallet);
   margin-top: 0;
 }
 .stack-card.selected .card-actions {
@@ -400,7 +407,6 @@ button {
 .act-btn.danger { color: #FF3B30; border-color: rgba(255,59,48,0.18); }
 .act-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
-/* EMPTY */
 .empty {
   display: flex; flex-direction: column; align-items: center;
   padding: 60px 40px; text-align: center; min-height: 50vh; justify-content: center;
@@ -414,28 +420,29 @@ button {
 .empty-title { font-family: 'Syne', sans-serif; font-size: 21px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 8px; }
 .empty-sub { font-size: 14px; color: var(--t2); line-height: 1.5; max-width: 250px; }
 
-/* ADD MENU SHEET */
+/* SHEET */
 .sheet-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
+  position: fixed; inset: 0; background: rgba(0,0,0,0.55); backdrop-filter: blur(6px);
   z-index: 2900; opacity: 0; pointer-events: none;
   transition: opacity 0.3s var(--ease-out);
 }
 .sheet-overlay.show { opacity: 1; pointer-events: all; }
 .sheet {
   position: fixed; bottom: 0; left: 0; right: 0;
-  background: rgba(20,20,24,0.96); backdrop-filter: blur(28px);
+  background: rgba(20,20,24,0.96); backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
   border-top-left-radius: 24px; border-top-right-radius: 24px;
   padding: 14px 20px calc(var(--sab) + 18px);
   z-index: 3050; transform: translateY(100%);
-  transition: transform 0.4s var(--ease-out);
+  transition: transform 0.4s var(--ease-out), filter 0.3s ease, opacity 0.3s ease;
   border-top: 1px solid var(--b2);
 }
 .sheet.show { transform: translateY(0); }
+.sheet.dimmed { filter: blur(4px) brightness(0.6); pointer-events: none; }
 .sheet-grip { width: 38px; height: 4px; background: var(--s4); border-radius: 2px; margin: 0 auto 18px; }
 .sheet-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 14px; }
 .sheet-opt {
   display: flex; align-items: center; gap: 14px;
-  width: 100%; padding: 14px 14px;
+  width: 100%; padding: 14px;
   background: var(--s1); border: 1px solid var(--b1);
   border-radius: 14px; margin-bottom: 8px;
   text-align: left; color: var(--t1);
@@ -542,14 +549,10 @@ button {
 .shutter:active { transform: scale(0.88); }
 .shutter::before { content: ''; width: 54px; height: 54px; background: white; border-radius: 50%; transition: all 0.2s var(--spring); }
 .shutter:active::before { width: 46px; height: 46px; }
-.scanner-bot .skip-back-btn {
-  font-size: 12px; color: var(--accent-light); padding: 6px 16px;
-}
+.scanner-bot .skip-back-btn { font-size: 12px; color: var(--accent-light); padding: 6px 16px; }
 
-/* PDF UPLOAD */
-input[type=file] { display: none; }
+input[type=file] { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
 
-/* TOAST */
 .toast {
   position: fixed;
   bottom: calc(var(--sab) + 94px); left: 50%;
@@ -611,13 +614,12 @@ input[type=file] { display: none; }
   <div class="scroll-area" id="scrollArea">
     <div class="stats-bar">
       <div class="stats-label">Wallet</div>
-      <div class="stats-sub" id="statsSub">Tap a card to expand · Double-tap to flip</div>
+      <div class="stats-sub" id="statsSub">Tap to expand · Double-tap to flip</div>
     </div>
     <div class="wallet-stack" id="walletStack"></div>
   </div>
 </div>
 
-<!-- ADD SHEET -->
 <div class="sheet-overlay" id="sheetOverlay" onclick="closeAddSheet()"></div>
 <div class="sheet" id="addSheet">
   <div class="sheet-grip"></div>
@@ -637,14 +639,13 @@ input[type=file] { display: none; }
     </div>
     <div class="sheet-opt-body">
       <div class="sheet-opt-title">Upload Ticket / Pass</div>
-      <div class="sheet-opt-sub">Flight, train, movie, e-visa (PDF)</div>
+      <div class="sheet-opt-sub">Flight, train, movie, e-visa (PDF or image)</div>
     </div>
   </button>
 </div>
 
 <input type="file" id="ticketFile" accept="application/pdf,image/*" onchange="handleTicketUpload(event)">
 
-<!-- SCANNER -->
 <div id="scanner" class="scanner">
   <div class="scanner-hdr">
     <div class="scanner-title" id="scanTitle">Scan Card</div>
@@ -717,9 +718,7 @@ const scanInstr = $('scanInstr');
 const scanSubText = $('scanSubText');
 const shutterBtn = $('shutterBtn');
 const skipBackBtn = $('skipBackBtn');
-const statsSub = $('statsSub');
 
-// DATABASE
 function openDB() {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
@@ -750,7 +749,6 @@ function txDel(id) {
   });
 }
 
-// API KEY
 function promptApiKey() {
   const cur = localStorage.getItem('iris_key') || '';
   const val = prompt('Gemini API Key:', cur);
@@ -760,17 +758,17 @@ function promptApiKey() {
   else { localStorage.removeItem('iris_key'); toast('API key cleared', 'info'); }
 }
 
-// ADD SHEET
 function openAddSheet() {
   $('sheetOverlay').classList.add('show');
   $('addSheet').classList.add('show');
+  $('addSheet').classList.remove('dimmed');
 }
 function closeAddSheet() {
   $('sheetOverlay').classList.remove('show');
   $('addSheet').classList.remove('show');
+  $('addSheet').classList.remove('dimmed');
 }
 
-// SCANNER
 async function openScanner() {
   closeAddSheet();
   if (!localStorage.getItem('iris_key')) {
@@ -816,7 +814,6 @@ const SCAN_STEPS = [
   { title: 'Scan Back', instr: 'Flip card — now scan the back', sub: 'Or skip if single-sided' },
   { title: 'Analyzing', instr: 'AI extracting all card details', sub: 'Please wait a few seconds...' },
 ];
-
 function refreshScanUI() {
   const idx = Math.min(scan.step, 2);
   const s = SCAN_STEPS[idx];
@@ -834,7 +831,6 @@ function refreshScanUI() {
   shutterBtn.style.opacity = isProc ? '0.3' : '';
   skipBackBtn.style.display = (idx === 1) ? 'block' : 'none';
 }
-
 function captureFrame() {
   if (!videoEl.videoWidth || !camStream) { toast('Camera not ready','error'); return; }
   shutterBtn.disabled = true;
@@ -854,41 +850,38 @@ function captureFrame() {
     }
   });
 }
-
 function skipBack() {
   if (scan.step !== 1) return;
   scan.back = null; scan.step = 2;
   refreshScanUI(); setFrameState('processing');
   runAI();
 }
-
 function doFlash(cb) {
   flashEl.style.opacity = '0.65';
   setTimeout(() => { flashEl.style.opacity = '0'; setTimeout(cb, 250); }, 60);
 }
 
-// AI PROCESSING - CARD/ID
 async function runAI() {
   setFrameState('processing');
   procOverlay.classList.add('show');
   shutterBtn.disabled = true;
 
   const key = localStorage.getItem('iris_key');
-  const systemPrompt = `You are a precise OCR and document analysis engine. I am showing you a card or identity document (front${scan.back ? ' and back' : ' only'}).
-Return ONLY a raw JSON object. Use null for any missing field. EXTRACT THE FULL VISIBLE CARD/ID NUMBER as it appears - do not mask it.
+  const systemPrompt = `You are a precise OCR engine. I'm showing you a card or ID document (front${scan.back ? ' and back' : ' only'}).
+Return ONLY a raw JSON object. Use null for missing fields. Extract the FULL visible card/ID number — do not mask it.
 
-JSON schema:
+Schema:
 {
   "type": "<one of: Credit Card | Debit Card | Forex Card | Aadhaar Card | PAN Card | Voter ID | Driving License | Passport | E-Visa | Other>",
-  "product": "<specific product name e.g. HDFC Regalia Credit Card. If unknown, same as type>",
+  "product": "<specific product e.g. HDFC Regalia. If unknown, same as type>",
   "bank": "<bank or issuing authority>",
-  "number": "<full primary ID/card number, exactly as visible, no masking>",
+  "number": "<full primary number, exactly as visible>",
   "name": "<full name on card>",
   "dob": "<date of birth>",
   "expiry": "<expiry/valid until date>",
-  "cvv": "<CVV/CVC from back if visible, else null>",
-  "address": "<address from back if visible, else null>",
-  "back_info": "<any other notable info: blood group, emergency contact, nationality, sex, place of birth, etc.>",
+  "cvv": "<CVV/CVC if visible on back>",
+  "address": "<address from back>",
+  "back_info": "<other back info: blood group, emergency contact, nationality, sex, place of birth, etc>",
   "barcode_ref": "<reference/barcode/QR number if any>"
 }`;
 
@@ -907,8 +900,7 @@ JSON schema:
     generationConfig: { temperature: 0.05, maxOutputTokens: 800, responseMimeType: "application/json" }
   };
 
-  let retries = 3;
-  let data = null;
+  let retries = 3, data = null;
   try {
     while (retries > 0) {
       const res = await fetch(`${GEMINI_ENDPOINT}?key=${key}`, {
@@ -929,7 +921,7 @@ JSON schema:
       data = await res.json(); break;
     }
     if (data?.candidates?.[0]?.finishReason === 'SAFETY')
-      throw new Error('AI blocked the scan due to sensitive info filters.');
+      throw new Error('AI blocked the scan');
     const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!rawText) throw new Error('Empty AI response');
     const p = JSON.parse(rawText);
@@ -947,8 +939,6 @@ JSON schema:
       address: p.address || null,
       back_info: p.back_info || null,
       barcode_ref: p.barcode_ref || null,
-      frontImg: scan.front,
-      backImg: scan.back,
       savedAt: new Date().toISOString()
     };
     await txAdd(card);
@@ -967,24 +957,41 @@ JSON schema:
   }
 }
 
-// ============================================
-// TICKET UPLOAD (PDF)
-// ============================================
+// =====================================
+// FIX 4: TICKET UPLOAD — sheet stays visible & blurred
+// =====================================
 function openTicketUpload() {
-  closeAddSheet();
   if (!localStorage.getItem('iris_key')) {
+    closeAddSheet();
     toast('Set your Gemini API key first', 'error');
     setTimeout(promptApiKey, 800);
     return;
   }
+  // Don't close the sheet — just dim/blur it so it stays visible behind the picker
+  $('addSheet').classList.add('dimmed');
   $('ticketFile').click();
+
+  // If user cancels picker, restore the sheet via window focus
+  const restore = () => {
+    setTimeout(() => {
+      if ($('addSheet').classList.contains('dimmed') && !scannerEl.classList.contains('open')) {
+        $('addSheet').classList.remove('dimmed');
+      }
+    }, 400);
+    window.removeEventListener('focus', restore);
+  };
+  window.addEventListener('focus', restore);
 }
 
 async function handleTicketUpload(event) {
   const file = event.target.files[0];
   event.target.value = '';
-  if (!file) return;
+  if (!file) {
+    $('addSheet').classList.remove('dimmed');
+    return;
+  }
 
+  closeAddSheet();
   toast('Reading ticket...', 'info');
 
   try {
@@ -992,7 +999,6 @@ async function handleTicketUpload(event) {
     let firstPageImage = null;
 
     if (file.type === 'application/pdf') {
-      // Extract text from PDF
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       const numPages = Math.min(pdf.numPages, 3);
@@ -1001,7 +1007,6 @@ async function handleTicketUpload(event) {
         const textContent = await page.getTextContent();
         extractedText += textContent.items.map(it => it.str).join(' ') + '\n';
       }
-      // Render first page to image for AI
       const page = await pdf.getPage(1);
       const viewport = page.getViewport({ scale: 1.5 });
       const canvas = document.createElement('canvas');
@@ -1028,7 +1033,6 @@ async function handleTicketUpload(event) {
 }
 
 async function processTicketAI(extractedText, imageData) {
-  // Show processing overlay
   scannerEl.classList.add('open');
   setFrameState('processing');
   procOverlay.classList.add('show');
@@ -1038,27 +1042,26 @@ async function processTicketAI(extractedText, imageData) {
   shutterBtn.style.opacity = '0.3';
 
   const key = localStorage.getItem('iris_key');
-  const systemPrompt = `You are a ticket/pass parser. I am providing you a ticket document (flight, train, movie, e-visa, event, etc.).
-Return ONLY a raw JSON object with the structure below. Use null for missing fields.
+  const systemPrompt = `You are a ticket/pass parser. Parse the ticket and return ONLY a raw JSON object.
 
-JSON schema:
+Schema:
 {
-  "type": "<one of: Flight Ticket | Train Ticket | Movie Ticket | E-Visa | Event Ticket | Bus Ticket | Other Pass>",
-  "product": "<airline/operator/cinema name e.g. IndiGo, IRCTC, PVR>",
+  "type": "<Flight Ticket | Train Ticket | Movie Ticket | E-Visa | Event Ticket | Bus Ticket | Other Pass>",
+  "product": "<airline/operator/cinema name>",
   "passenger": "<passenger/holder name>",
-  "pnr": "<PNR / booking reference / confirmation code>",
-  "from_code": "<departure airport/station code e.g. BLR. For movie/event use venue code or null>",
-  "from_city": "<departure city/full name. For movie/event the venue name>",
-  "to_code": "<arrival airport/station code. For movie/event the screen/hall>",
-  "to_city": "<arrival city/full name. For movie/event the movie/event name>",
-  "depart_date": "<departure date e.g. 12 Jun 2024>",
-  "depart_time": "<departure time e.g. 14:30>",
+  "pnr": "<PNR / booking reference>",
+  "from_code": "<departure code (BLR etc) or venue code>",
+  "from_city": "<departure city or venue name>",
+  "to_code": "<arrival code or screen/hall>",
+  "to_city": "<arrival city or movie/event name>",
+  "depart_date": "<departure date>",
+  "depart_time": "<departure time>",
   "arrive_date": "<arrival date>",
   "arrive_time": "<arrival time>",
-  "seat": "<seat number(s)>",
-  "class_or_category": "<class/coach/category e.g. Economy, 3AC, Gold>",
-  "gate_or_terminal": "<gate / terminal / hall info>",
-  "extra_info": "<any other key info: visa expiry, flight number, train number, screen, etc.>"
+  "seat": "<seat>",
+  "class_or_category": "<class/coach/category>",
+  "gate_or_terminal": "<gate/terminal/hall>",
+  "extra_info": "<other key info>"
 }`;
 
   const parts = [{ text: systemPrompt }];
@@ -1086,7 +1089,6 @@ JSON schema:
     const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!rawText) throw new Error('Empty AI response');
     const p = JSON.parse(rawText);
-
     const ticket = {
       id: Date.now(),
       kind: 'ticket',
@@ -1108,7 +1110,6 @@ JSON schema:
       extra_info: p.extra_info || null,
       savedAt: new Date().toISOString()
     };
-
     await txAdd(ticket);
     closeScanner();
     procOverlay.querySelector('.proc-text').textContent = 'Iris AI Scanning…';
@@ -1123,9 +1124,6 @@ JSON schema:
   }
 }
 
-// ============================================
-// RENDER
-// ============================================
 async function renderWallet() {
   const all = (await txAll()).sort((a,b) => b.id - a.id);
   const n = all.length;
@@ -1148,21 +1146,18 @@ async function renderWallet() {
     return;
   }
 
-  // If many cards, switch to spread mode automatically when one is selected
   if (selectedId) walletStack.classList.add('expanded-mode');
   else walletStack.classList.remove('expanded-mode');
 
   all.forEach((card, idx) => {
     const el = buildCard(card);
+    el.classList.add('appear');
     el.style.animationDelay = `${idx * 55}ms`;
     el.style.zIndex = (n - idx);
     walletStack.appendChild(el);
   });
 }
 
-// ============================================
-// CARD BUILDER
-// ============================================
 function getTheme(item) {
   const t = String(item.type || '').toLowerCase();
   if (item.kind === 'ticket') {
@@ -1190,7 +1185,6 @@ function isFinancialCard(type) {
 
 function copyButton(val, label) {
   if (!val) return '';
-  const safe = String(val).replace(/'/g, "\\'").replace(/"/g, '&quot;');
   return `<button class="cp-btn" data-copy="${escAttr(val)}" title="Copy ${label}" aria-label="Copy ${label}">
     <svg viewBox="0 0 24 24"><path d="M16 1H4C2.9 1 2 1.9 2 3v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
   </button>`;
@@ -1201,28 +1195,19 @@ function buildCard(item) {
   el.className = 'stack-card';
   el.dataset.id = item.id;
 
-  if (item.kind === 'ticket') {
-    el.innerHTML = buildTicketHTML(item);
-  } else {
-    el.innerHTML = buildIdCardHTML(item);
-  }
+  if (item.kind === 'ticket') el.innerHTML = buildTicketHTML(item);
+  else el.innerHTML = buildIdCardHTML(item);
 
-  // Single-tap = select/expand. Double-tap = flip.
   el.addEventListener('click', e => {
-    // If clicked element is a copy button, do not propagate to flip/select
     const copyBtn = e.target.closest('.cp-btn');
     if (copyBtn) {
       e.stopPropagation();
-      const val = copyBtn.dataset.copy;
-      copyVal(val);
+      copyVal(copyBtn.dataset.copy);
       return;
     }
-    // Action buttons
     if (e.target.closest('.act-btn')) return;
-
     handleCardTap(item.id);
   });
-
   return el;
 }
 
@@ -1230,8 +1215,6 @@ function buildIdCardHTML(card) {
   const theme = getTheme(card);
   const isFin = isFinancialCard(card.type);
   const isPan = theme === 'pan';
-
-  // SHOW FULL NUMBER (issue #3)
   const fullNum = card.number || '';
   const numDisplay = fullNum ? formatCardNumber(fullNum, isFin) : '— — — —';
 
@@ -1317,7 +1300,6 @@ function buildIdCardHTML(card) {
 function formatCardNumber(num, isFinancial) {
   const clean = String(num).replace(/\s/g, '');
   if (isFinancial && clean.length >= 12) {
-    // Group in 4s
     return clean.replace(/(.{4})/g, '$1 ').trim();
   }
   return num;
@@ -1332,6 +1314,9 @@ function barcodeLines(n, dark) {
   }).join('');
 }
 
+// =====================================
+// FIX 1: BACK SIDE — independent, NO front content shown
+// =====================================
 function buildBack(card, theme) {
   const isFin = isFinancialCard(card.type);
 
@@ -1342,16 +1327,19 @@ function buildBack(card, theme) {
         <div class="cb-sigstrip">
           <div>
             <div class="cb-siglabel">Authorized Signature</div>
-            <div class="cb-sigsub">NOT VALID WITHOUT SIGNATURE</div>
+            <div class="cb-sigsub">Not valid without signature</div>
           </div>
           ${card.cvv ? `<div>
             <div class="cb-cvv-label">CVV</div>
             <div class="cb-cvv-box">${escH(card.cvv)} ${copyButton(card.cvv, 'CVV')}</div>
           </div>` : ''}
         </div>
-        ${card.back_info ? `<div style="margin-top:10px"><div class="cb-id-label">Additional Info</div><div class="cb-id-val">${escH(card.back_info)}</div></div>` : ''}
-        <div class="cb-foot" style="margin-top:auto;padding-top:8px">
-          <div class="cb-bankname">${escH(card.bank || card.product || '')}</div>
+        ${card.back_info ? `<div class="cb-info-row">
+          <div class="cb-info-label">Additional Info</div>
+          <div class="cb-info-val">${escH(card.back_info)}</div>
+        </div>` : ''}
+        <div class="cb-foot">
+          <div class="cb-bankname">${escH(card.bank || card.product || 'Card Issuer')}</div>
           <div class="cb-barcode">${barcodeLines(20, false)}</div>
         </div>
       </div>
@@ -1377,9 +1365,10 @@ function buildBack(card, theme) {
           </div>
           ${copyButton(card.barcode_ref, 'reference')}
         </div>` : ''}
-        <div style="display:flex;justify-content:flex-end;margin-top:auto">
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;gap:10px">
+          <div class="cb-barcode" style="opacity:0.45">${barcodeLines(18, false)}</div>
           <div class="cb-qr-placeholder">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="white">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="#003087">
               <path d="M3 3h7v7H3V3zm1 1v5h5V4H4zm1 1h3v3H5V5zm8-2h7v7h-7V3zm1 1v5h5V4h-5zm1 1h3v3h-3V5zM3 13h7v7H3v-7zm1 1v5h5v-5H4zm1 1h3v3H5v-3zm8 0h2v2h-2v-2zm0 4h2v2h-2v-2zm3-4h2v2h-2v-2zm-1 2h2v2h-2v-2zm2 2h2v2h-2v-2zm-4 0h2v2h-2v-2z"/>
             </svg>
           </div>
@@ -1392,36 +1381,68 @@ function buildBack(card, theme) {
   if (theme === 'pan') {
     return `<div class="cb-pan">
       <div class="cb-id-header">Income Tax Department — Govt of India</div>
-      ${card.address ? `<div class="cb-id-field"><div class="cb-id-field-content"><div class="cb-id-label">Address</div><div class="cb-id-val">${escH(card.address)}</div></div>${copyButton(card.address, 'address')}</div>` : ''}
+      ${card.address ? `<div class="cb-id-field">
+        <div class="cb-id-field-content">
+          <div class="cb-id-label">Address</div>
+          <div class="cb-id-val">${escH(card.address)}</div>
+        </div>
+        ${copyButton(card.address, 'address')}
+      </div>` : ''}
       ${card.back_info ? `<div class="cb-id-field"><div class="cb-id-field-content"><div class="cb-id-label">Details</div><div class="cb-id-val">${escH(card.back_info)}</div></div></div>` : ''}
-      <div style="display:flex;justify-content:flex-end;margin-top:auto">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;gap:10px">
+        <div style="font-size:8px;font-weight:700;color:#2D1A04;opacity:0.5;letter-spacing:1px">PERMANENT ACCOUNT NUMBER</div>
         <div class="cb-pan-barcode">${barcodeLines(18, true)}</div>
       </div>
       <div class="tricolor"></div>
     </div>`;
   }
 
+  if (theme === 'passport') {
+    return `<div class="cb" style="background:linear-gradient(148deg,#1F1B0E 0%,#3D2F0F 100%)">
+      <div class="cb-id">
+        <div class="cb-id-header">Republic of India — Ministry of External Affairs</div>
+        ${card.address ? `<div class="cb-id-field"><div class="cb-id-field-content"><div class="cb-id-label">Address</div><div class="cb-id-val">${escH(card.address)}</div></div>${copyButton(card.address, 'address')}</div>` : ''}
+        ${card.back_info ? `<div class="cb-id-field"><div class="cb-id-field-content"><div class="cb-id-label">Details</div><div class="cb-id-val">${escH(card.back_info)}</div></div></div>` : ''}
+        ${card.barcode_ref ? `<div class="cb-id-field"><div class="cb-id-field-content"><div class="cb-id-label">Machine Readable</div><div class="cb-id-val" style="font-family:'SF Mono',monospace;font-size:10px;letter-spacing:1px">${escH(card.barcode_ref)}</div></div></div>` : ''}
+        <div style="margin-top:auto">
+          <div class="cb-barcode" style="opacity:0.5">${barcodeLines(24, false)}</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
   const bgs = {
     voter: 'linear-gradient(148deg,#14012B 0%,#2D1275 100%)',
     driving: 'linear-gradient(148deg,#0A2416 0%,#134A2C 100%)',
-    passport: 'linear-gradient(148deg,#1F1B0E 0%,#3D2F0F 100%)',
     evisa: 'linear-gradient(148deg,#15302E 0%,#1F5A50 100%)',
+    forex: 'linear-gradient(148deg,#0F1A2E 0%,#1B3060 100%)',
     generic: 'linear-gradient(148deg,#0D0D1E 0%,#1A1535 100%)',
   };
   const bg = bgs[theme] || bgs.generic;
+
+  const headers = {
+    voter: 'Election Commission of India',
+    driving: 'Regional Transport Office',
+    evisa: 'Electronic Visa — Government Issued',
+    forex: 'Forex Travel Card',
+    generic: 'Card Details'
+  };
+  const headerText = headers[theme] || 'Card Details';
+
   return `<div class="cb" style="background:${bg}">
     <div class="cb-id">
+      <div class="cb-id-header">${headerText}</div>
       ${card.back_info ? `<div class="cb-id-field"><div class="cb-id-field-content"><div class="cb-id-label">Details</div><div class="cb-id-val">${escH(card.back_info)}</div></div></div>` : ''}
       ${card.address ? `<div class="cb-id-field"><div class="cb-id-field-content"><div class="cb-id-label">Address</div><div class="cb-id-val">${escH(card.address)}</div></div>${copyButton(card.address, 'address')}</div>` : ''}
       ${card.barcode_ref ? `<div class="cb-id-field"><div class="cb-id-field-content"><div class="cb-id-label">Reference</div><div class="cb-id-val" style="font-family:'SF Mono',monospace;font-size:10px;letter-spacing:1px">${escH(card.barcode_ref)}</div></div>${copyButton(card.barcode_ref,'ref')}</div>` : ''}
-      <div style="display:flex;justify-content:flex-end;margin-top:auto">
+      <div style="margin-top:auto;display:flex;justify-content:space-between;align-items:flex-end;gap:10px">
+        <div style="font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.35)">${escH(card.product || card.type || '')}</div>
         <div class="cb-barcode">${barcodeLines(18, false)}</div>
       </div>
     </div>
   </div>`;
 }
 
-// TICKET / PASS HTML
 function buildTicketHTML(t) {
   const theme = getTheme(t);
   const arrowSVG = `<svg class="tk-arrow" width="22" height="14" viewBox="0 0 22 14" fill="none">
@@ -1429,7 +1450,6 @@ function buildTicketHTML(t) {
   </svg>`;
 
   const isMovie = theme === 'movie';
-  const isVisa  = theme === 'evisa';
 
   const frontHTML = `
     <div class="theme-${theme} card-face front">
@@ -1471,16 +1491,20 @@ function buildTicketHTML(t) {
       </div>
     </div>`;
 
-  // Back
   const backHTML = `<div class="cb" style="background:linear-gradient(148deg,#1a1a2a 0%,#0a0a18 100%)">
     <div class="cb-id">
-      <div class="cb-id-header">${escH(t.product || t.type || 'Pass')}</div>
+      <div class="cb-id-header">${escH(t.product || t.type || 'Pass')} — Booking Details</div>
       ${t.passenger ? `<div class="cb-id-field"><div class="cb-id-field-content"><div class="cb-id-label">Passenger</div><div class="cb-id-val">${escH(t.passenger)}</div></div>${copyButton(t.passenger, 'name')}</div>` : ''}
       ${t.class_or_category ? `<div class="cb-id-field"><div class="cb-id-field-content"><div class="cb-id-label">Class</div><div class="cb-id-val">${escH(t.class_or_category)}</div></div></div>` : ''}
       ${t.gate_or_terminal ? `<div class="cb-id-field"><div class="cb-id-field-content"><div class="cb-id-label">${isMovie ? 'Hall' : 'Gate / Terminal'}</div><div class="cb-id-val">${escH(t.gate_or_terminal)}</div></div></div>` : ''}
       ${t.arrive_date ? `<div class="cb-id-field"><div class="cb-id-field-content"><div class="cb-id-label">Arrival</div><div class="cb-id-val">${escH(t.arrive_date)}${t.arrive_time ? ' · ' + escH(t.arrive_time) : ''}</div></div></div>` : ''}
       ${t.extra_info ? `<div class="cb-id-field"><div class="cb-id-field-content"><div class="cb-id-label">Info</div><div class="cb-id-val">${escH(t.extra_info)}</div></div></div>` : ''}
-      <div style="display:flex;justify-content:flex-end;margin-top:auto">
+      <div style="margin-top:auto;display:flex;justify-content:space-between;align-items:flex-end;gap:10px">
+        <div class="cb-qr-placeholder">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="#0a0a18">
+            <path d="M3 3h7v7H3V3zm1 1v5h5V4H4zm1 1h3v3H5V5zm8-2h7v7h-7V3zm1 1v5h5V4h-5zm1 1h3v3h-3V5zM3 13h7v7H3v-7zm1 1v5h5v-5H4zm1 1h3v3H5v-3zm8 0h2v2h-2v-2zm0 4h2v2h-2v-2zm3-4h2v2h-2v-2zm-1 2h2v2h-2v-2zm2 2h2v2h-2v-2zm-4 0h2v2h-2v-2z"/>
+          </svg>
+        </div>
         <div class="cb-barcode">${barcodeLines(22, false)}</div>
       </div>
     </div>
@@ -1503,9 +1527,9 @@ function buildTicketHTML(t) {
     </div>`;
 }
 
-// ============================================
-// CARD INTERACTIONS - DOUBLE-TAP TO FLIP
-// ============================================
+// =====================================
+// FIX 2: SMOOTH INTERACTIONS
+// =====================================
 function handleCardTap(id) {
   const now = Date.now();
   const isDoubleTap = (lastTapId === id) && (now - lastTapTime < 320);
@@ -1516,19 +1540,15 @@ function handleCardTap(id) {
   if (!el) return;
 
   if (isDoubleTap) {
-    // FLIP
     flipCard(id);
     return;
   }
 
-  // SINGLE TAP — select / deselect
   if (selectedId === id) {
-    // Tap again → deselect (collapse)
     deselectCard();
     return;
   }
 
-  // Deselect any previous
   if (selectedId) {
     const prev = document.querySelector(`.stack-card[data-id="${selectedId}"]`);
     if (prev) {
@@ -1542,7 +1562,8 @@ function handleCardTap(id) {
   selectedId = id;
   walletStack.classList.add('expanded-mode');
 
-  setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 200);
+  // Smooth scroll only after spread animation is well underway
+  setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 350);
 }
 
 function deselectCard() {
@@ -1561,7 +1582,6 @@ function flipCard(id, e) {
   if (e) e.stopPropagation();
   const el = document.querySelector(`.stack-card[data-id="${id}"]`);
   if (!el) return;
-  // Auto-select if not already
   if (selectedId !== id) {
     if (selectedId) {
       const prev = document.querySelector(`.stack-card[data-id="${selectedId}"]`);
@@ -1605,9 +1625,6 @@ async function deleteCard(id, e) {
   }, 280);
 }
 
-// ============================================
-// CLIPBOARD - FIXED (issue #2)
-// ============================================
 async function copyVal(text) {
   if (!text || text === 'null' || text === 'undefined') {
     toast('Nothing to copy', 'error');
@@ -1616,7 +1633,6 @@ async function copyVal(text) {
   const str = String(text);
   let success = false;
 
-  // Try modern API first (works in secure contexts only)
   try {
     if (navigator.clipboard && window.isSecureContext) {
       await navigator.clipboard.writeText(str);
@@ -1626,7 +1642,6 @@ async function copyVal(text) {
     success = false;
   }
 
-  // Fallback for iOS Safari / non-secure / older browsers
   if (!success) {
     try {
       const ta = document.createElement('textarea');
@@ -1638,15 +1653,12 @@ async function copyVal(text) {
       ta.style.opacity = '0';
       ta.style.pointerEvents = 'none';
       document.body.appendChild(ta);
-
-      // iOS specific selection
       const range = document.createRange();
       range.selectNodeContents(ta);
       const sel = window.getSelection();
       sel.removeAllRanges();
       sel.addRange(range);
       ta.setSelectionRange(0, ta.value.length);
-
       success = document.execCommand('copy');
       document.body.removeChild(ta);
     } catch (e) {
@@ -1655,12 +1667,9 @@ async function copyVal(text) {
   }
 
   if (success) toast('Copied to clipboard', 'success');
-  else toast('Copy failed — long-press the value to copy', 'error');
+  else toast('Copy failed', 'error');
 }
 
-// ============================================
-// TOAST
-// ============================================
 function toast(msg, type = 'info') {
   if (toastTimer) clearTimeout(toastTimer);
   const el = $('toast');
@@ -1669,9 +1678,6 @@ function toast(msg, type = 'info') {
   toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
 }
 
-// ============================================
-// HELPERS
-// ============================================
 function escH(s) {
   if (s === null || s === undefined || s === 'null') return '';
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
@@ -1681,9 +1687,6 @@ function escAttr(s) {
   return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
 }
 
-// ============================================
-// TOUCH LOCKDOWN
-// ============================================
 document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 $('scrollArea').addEventListener('touchmove', e => {
   const el = $('scrollArea');
@@ -1700,7 +1703,6 @@ $('scrollArea').addEventListener('touchstart', e => {
   if (e.touches.length === 1) $('scrollArea')._touchStartY = e.touches[0].clientY;
 }, { passive: true });
 
-// ESC + click outside to deselect
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     if (scannerEl.classList.contains('open')) closeScanner();
@@ -1712,12 +1714,10 @@ $('scrollArea').addEventListener('click', e => {
   if (!e.target.closest('.stack-card')) deselectCard();
 });
 
-// SW
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').catch(err => console.warn('[Iris] SW failed:', err));
 }
 
-// BOOT
 (async () => {
   try {
     db = await openDB();
