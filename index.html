@@ -1082,22 +1082,21 @@ async function runAI() {
   const key = localStorage.getItem('iris_key');
 
   const systemPrompt = `You are a precise OCR and document analysis engine. I am showing you BOTH the front and back of a card or identity document.
-
-Return ONLY a raw JSON object — no markdown, no code fences, no extra text. Use null for any missing field.
+Return ONLY a raw JSON object. Use null for any missing field.
 
 JSON schema:
 {
-  "type":           "<category: Credit Card | Debit Card | Aadhaar Card | PAN Card | Voter ID | Driving License | Passport | Other>",
-  "product":        "<specific product name e.g. HDFC Regalia Credit Card. If unknown, same as type>",
-  "bank":           "<bank or issuing authority>",
-  "number":         "<primary ID or card number>",
-  "name":           "<full name on card>",
-  "dob":            "<date of birth>",
-  "expiry":         "<expiry date>",
-  "cvv":            "<CVV/CVC from back if visible, else null>",
-  "address":        "<address from back if visible, else null>",
-  "back_info":      "<any other notable back info: blood group, emergency contact, back document number, etc. Combine into one string.>",
-  "barcode_ref":    "<reference/barcode/QR number from back if any>"
+  "type": "<category: Credit Card | Debit Card | Aadhaar Card | PAN Card | Voter ID | Driving License | Passport | Other>",
+  "product": "<specific product name e.g. HDFC Regalia Credit Card. If unknown, same as type>",
+  "bank": "<bank or issuing authority>",
+  "number": "<primary ID or card number>",
+  "name": "<full name on card>",
+  "dob": "<date of birth>",
+  "expiry": "<expiry date>",
+  "cvv": "<CVV/CVC from back if visible, else null>",
+  "address": "<address from back if visible, else null>",
+  "back_info": "<any other notable back info: blood group, emergency contact, back document number, etc. Combine into one string.>",
+  "barcode_ref": "<reference/barcode/QR number from back if any>"
 }`;
 
   const body = {
@@ -1110,48 +1109,74 @@ JSON schema:
         { inline_data: { mime_type: 'image/jpeg', data: scan.back.split(',')[1] } },
       ]
     }],
-    generationConfig: { temperature: 0.05, maxOutputTokens: 800 }
+    generationConfig: {
+      temperature: 0.05,
+      maxOutputTokens: 800,
+      responseMimeType: "application/json" // Forces strict JSON output at the API level
+    }
   };
 
-  try {
-    const res = await fetch(`${GEMINI_ENDPOINT}?key=${key}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
+  let retries = 3;
+  let data = null;
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err?.error?.message || `HTTP ${res.status}`);
+  try {
+    // Retry loop for High Demand (503) errors
+    while (retries > 0) {
+      const res = await fetch(`${GEMINI_ENDPOINT}?key=${key}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      if (res.status === 503) {
+        retries--;
+        if (retries === 0) throw new Error("High demand. Please try again later.");
+        
+        // Update UI to show the user we are automatically retrying
+        const subText = procOverlay.querySelector('.proc-sub');
+        if (subText) subText.textContent = `High demand, retrying... (${3 - retries})`;
+        
+        await new Promise(r => setTimeout(r, 2000)); // Wait 2 seconds before retrying
+        continue;
+      }
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error?.message || `HTTP ${res.status}`);
+      }
+
+      data = await res.json();
+      break; // Success, exit retry loop
     }
 
-    const data = await res.json();
+    // Check if the API blocked the scan due to sensitive info filters
+    if (data?.candidates?.[0]?.finishReason === 'SAFETY') {
+        throw new Error('AI blocked the scan due to sensitive info filters.');
+    }
+
     const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!rawText) throw new Error('Empty AI response');
 
-    // Extract JSON from response
-    const clean = rawText.replace(/```json\s*/gi,'').replace(/```\s*/gi,'').trim();
-    const match = clean.match(/\{[\s\S]*\}/);
-    if (!match) throw new Error('Could not parse AI response as JSON');
-
-    const p = JSON.parse(match[0]);
+    // Because we used responseMimeType, we can safely JSON.parse directly
+    // without needing complex Regex to strip markdown
+    const p = JSON.parse(rawText);
 
     const card = {
-      id:         Date.now(),
-      type:       p.type       || 'Card',
-      product:    p.product    || p.type || 'Card',
-      bank:       p.bank       || null,
-      number:     p.number     || null,
-      name:       p.name       || null,
-      dob:        p.dob        || null,
-      expiry:     p.expiry     || null,
-      cvv:        p.cvv        || null,
-      address:    p.address    || null,
-      back_info:  p.back_info  || null,
-      barcode_ref:p.barcode_ref|| null,
-      frontImg:   scan.front,
-      backImg:    scan.back,
-      savedAt:    new Date().toISOString()
+      id:          Date.now(),
+      type:        p.type        || 'Card',
+      product:     p.product     || p.type || 'Card',
+      bank:        p.bank        || null,
+      number:      p.number      || null,
+      name:        p.name        || null,
+      dob:         p.dob         || null,
+      expiry:      p.expiry      || null,
+      cvv:         p.cvv         || null,
+      address:     p.address     || null,
+      back_info:   p.back_info   || null,
+      barcode_ref: p.barcode_ref || null,
+      frontImg:    scan.front,
+      backImg:     scan.back,
+      savedAt:     new Date().toISOString()
     };
 
     await txAdd(card);
@@ -1165,11 +1190,18 @@ JSON schema:
     scan = { step: 0, front: null, back: null };
     setFrameState('scanning');
     procOverlay.classList.remove('show');
-    refreshScanUI(); // re-enables shutter, resets dots
+    
+    // Reset the processing text back to default in case it changed during retries
+    const subText = procOverlay.querySelector('.proc-sub');
+    if (subText) subText.textContent = 'Extracting all card details';
+    
+    refreshScanUI(); 
     toast('Error: ' + String(err.message).slice(0, 55), 'error');
   }
 }
 
+
+   
 // ================================================================
 // RENDER WALLET
 // ================================================================
