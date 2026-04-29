@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Iris Wallet">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="format-detection" content="telephone=no"><!-- prevent iOS auto-linking numbers on cards -->
+<meta name="format-detection" content="telephone=no">
 <meta name="theme-color" content="#000000">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.png">
@@ -15,172 +15,128 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<!-- PDF.js for ticket parsing -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+  if (window.pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+</script>
 
 <style>
-/* ================================================================
-   IRIS WALLET — DESIGN SYSTEM
-================================================================ */
 :root {
-  /* Layout */
   --sat: env(safe-area-inset-top, 44px);
   --sab: env(safe-area-inset-bottom, 34px);
-  --sal: env(safe-area-inset-left, 0px);
-  --sar: env(safe-area-inset-right, 0px);
-
-  /* Background */
-  --bg: #000000;
-  --bg2: #0a0a0a;
-
-  /* Surfaces */
+  --bg: #000;
   --s1: rgba(255,255,255,0.04);
   --s2: rgba(255,255,255,0.07);
   --s3: rgba(255,255,255,0.12);
   --s4: rgba(255,255,255,0.18);
-
-  /* Borders */
   --b1: rgba(255,255,255,0.08);
   --b2: rgba(255,255,255,0.14);
   --b3: rgba(255,255,255,0.22);
-
-  /* Accent */
-  --accent:       #7B5CF0;
-  --accent-mid:   #9B7EF8;
+  --accent: #7B5CF0;
+  --accent-mid: #9B7EF8;
   --accent-light: #C4B0FF;
-  --accent-glow:  rgba(123, 92, 240, 0.35);
-
-  /* Text */
+  --accent-glow: rgba(123,92,240,0.35);
   --t1: #FFFFFF;
   --t2: rgba(255,255,255,0.58);
   --t3: rgba(255,255,255,0.32);
   --t4: rgba(255,255,255,0.16);
-
-  /* Card */
   --cr: 22px;
-  --ca: 1.5867; /* ISO/IEC 7810 ID-1 ratio */
-
-  /* Easing */
+  --ca: 1.5867;
   --spring: cubic-bezier(0.34, 1.4, 0.64, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
 }
 
-/* ================================================================
-   RESET & BASE — iPhone PWA hardened
-================================================================ */
 *, *::before, *::after {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
-  -webkit-touch-callout: none;    /* no long-press popup */
-  -webkit-user-select: none;      /* no text selection on tap */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
   user-select: none;
   outline: none;
   margin: 0; padding: 0;
 }
-
-/* Allow text selection only inside actual text fields */
 input, textarea { -webkit-user-select: auto; user-select: auto; }
 
 html {
-  /* Use dvh (dynamic viewport height) — accounts for iOS Safari chrome */
   height: 100%;
-  /* Prevent elastic bounce on the root */
   overscroll-behavior: none;
-  -webkit-overflow-scrolling: auto;
   overflow: hidden;
 }
-
 body {
-  /* Fill exactly the visible screen — dvh handles notch/home bar correctly */
   width: 100vw;
   height: 100%;
-  min-height: -webkit-fill-available; /* iOS Safari fallback */
-  position: fixed;                    /* critical: prevents page shift on scroll */
+  min-height: -webkit-fill-available;
+  position: fixed;
   top: 0; left: 0;
   overflow: hidden;
-  overscroll-behavior: none;          /* kill rubber-band on body */
+  overscroll-behavior: none;
   background: var(--bg);
   color: var(--t1);
   font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  /* Prevent any accidental horizontal scrolling */
   touch-action: pan-y;
 }
-
 button {
   font-family: inherit; cursor: pointer; border: none; background: none;
-  -webkit-appearance: none;  /* prevent iOS button styling */
-  touch-action: manipulation; /* faster tap response */
+  -webkit-appearance: none;
+  touch-action: manipulation;
 }
 
-/* ================================================================
-   AMBIENT GLOW — fixed, never causes overflow
-================================================================ */
-.ambient {
-  position: fixed; inset: 0; pointer-events: none; z-index: 0;
-  overflow: hidden;   /* orbs clipped to screen, never cause scroll */
-  width: 100vw; height: 100vh;
-}
-.ambient-orb {
-  position: absolute; border-radius: 50%;
-  filter: blur(80px); opacity: 0.5;
-}
+/* Ambient orbs */
+.ambient { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+.ambient-orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.5; }
 .orb1 {
-  width: 50vw; height: 50vw;
-  top: -15%; left: -10%;
+  width: 50vw; height: 50vw; top: -15%; left: -10%;
   background: radial-gradient(circle, rgba(123,92,240,0.3) 0%, transparent 70%);
   animation: orbFloat1 9s ease-in-out infinite alternate;
 }
 .orb2 {
-  width: 40vw; height: 40vw;
-  bottom: 5%; right: -10%;
+  width: 40vw; height: 40vw; bottom: 5%; right: -10%;
   background: radial-gradient(circle, rgba(0,210,255,0.12) 0%, transparent 70%);
   animation: orbFloat2 11s ease-in-out infinite alternate;
 }
 @keyframes orbFloat1 { from{transform:translate(0,0) scale(1)} to{transform:translate(24px,18px) scale(1.08)} }
 @keyframes orbFloat2 { from{transform:translate(0,0) scale(1)} to{transform:translate(-18px,-24px) scale(1.12)} }
 
-/* ================================================================
-   APP SHELL
-================================================================ */
 .app {
   display: flex; flex-direction: column;
   width: 100%;
-  /* Use dvh for dynamic viewport that adjusts to iOS browser chrome */
   height: 100dvh;
-  height: 100vh; /* fallback for older iOS */
+  height: 100vh;
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  overflow: hidden;
-  z-index: 1;
+  overflow: hidden; z-index: 1;
 }
 
-/* ================================================================
-   HEADER
-================================================================ */
+/* HEADER */
 .header {
   flex-shrink: 0;
   padding: calc(var(--sat) + 14px) 22px 14px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  position: relative;
-  z-index: 100;
+  display: flex; justify-content: space-between; align-items: center;
+  position: relative; z-index: 100;
 }
 .header::after {
-  content: '';
-  position: absolute; bottom: 0; left: 20px; right: 20px; height: 1px;
+  content: ''; position: absolute; bottom: 0; left: 20px; right: 20px; height: 1px;
   background: linear-gradient(to right, transparent, var(--b2), transparent);
 }
 .wordmark {
-  font-family: 'Syne', -apple-system, sans-serif;
+  font-family: 'Syne', sans-serif;
   font-size: 30px; font-weight: 800; letter-spacing: -1px;
   background: linear-gradient(135deg, #fff 30%, var(--accent-light) 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text;
-  line-height: 1;
+  background-clip: text; line-height: 1;
 }
-.header-actions { display: flex; gap: 10px; align-items: center; }
-
+.header-actions { display: flex; gap: 8px; align-items: center; }
+.count-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 26px; height: 26px; padding: 0 8px;
+  background: var(--s3); border: 1px solid var(--b2);
+  border-radius: 100px;
+  font-size: 12px; font-weight: 700; color: var(--t1);
+  font-family: 'Syne', sans-serif;
+}
 .key-btn {
   display: flex; align-items: center; gap: 6px;
   padding: 9px 14px;
@@ -188,97 +144,79 @@ button {
   border: 1px solid var(--b2);
   border-radius: 100px;
   color: var(--t2);
-  font-size: 12px; font-weight: 600; letter-spacing: 0.2px;
+  font-size: 12px; font-weight: 600;
   transition: all 0.2s var(--spring);
 }
 .key-btn:active { transform: scale(0.92); background: var(--s3); }
 .key-btn svg { width: 13px; height: 13px; }
-
 .add-btn {
   width: 38px; height: 38px;
-  background: var(--accent);
-  border-radius: 50%;
+  background: var(--accent); border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 0 0 0 var(--accent-glow);
   transition: all 0.2s var(--spring);
 }
 .add-btn:active { transform: scale(0.86); }
 .add-btn svg { width: 18px; height: 18px; stroke: white; fill: none; stroke-width: 2.5; stroke-linecap: round; }
 
-/* ================================================================
-   SCROLL AREA — iPhone native-feel
-================================================================ */
+/* SCROLL */
 .scroll-area {
   flex: 1; min-height: 0;
-  overflow-y: scroll;          /* 'scroll' not 'auto' — smoother on iOS */
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;   /* momentum scrolling */
-  overscroll-behavior-y: contain;      /* contain bounce to this element only */
-  overscroll-behavior-x: none;         /* never allow horizontal drift */
-  /* Hide scrollbars on all browsers */
+  overflow-y: scroll; overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  overscroll-behavior-x: none;
   scrollbar-width: none;
-  -ms-overflow-style: none;
-  touch-action: pan-y;                 /* only vertical pan allowed */
+  touch-action: pan-y;
 }
-.scroll-area::-webkit-scrollbar { display: none; width: 0; height: 0; }
+.scroll-area::-webkit-scrollbar { display: none; }
 
-/* ================================================================
-   STATS BAR
-================================================================ */
-.stats-bar {
-  padding: 24px 24px 4px;
-}
-.stats-label {
-  font-size: 11px; font-weight: 700;
-  letter-spacing: 1.8px; text-transform: uppercase;
-  color: var(--t3); margin-bottom: 6px;
-}
-.stats-count {
-  font-family: 'Syne', sans-serif;
-  font-size: 46px; font-weight: 800; letter-spacing: -2.5px;
-  line-height: 1;
-  background: linear-gradient(135deg, #fff 40%, var(--accent-light) 100%);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-.stats-count em {
-  font-style: normal;
-  font-size: 16px; font-weight: 500; letter-spacing: 0;
-  color: var(--t3); -webkit-text-fill-color: var(--t3);
-  margin-left: 6px;
-}
-.section-label {
-  padding: 20px 24px 12px;
-  font-size: 13px; font-weight: 700;
-  letter-spacing: 1px; text-transform: uppercase; color: var(--t3);
-  display: none;
-}
+.stats-bar { padding: 24px 24px 4px; }
+.stats-label { font-size: 11px; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; color: var(--t3); margin-bottom: 6px; }
+.stats-sub { font-size: 13px; color: var(--t2); margin-top: 6px; }
 
-/* ================================================================
-   CARDS CONTAINER
-================================================================ */
-.cards-wrap {
-  padding: 0 16px calc(var(--sab) + 110px);
-  display: flex; flex-direction: column; gap: 14px;
-}
-
-/* ================================================================
-   CARD WRAPPER & FLIP
-================================================================ */
-.card-item {
+/* APPLE WALLET STYLE STACK */
+.wallet-stack {
   position: relative;
-  animation: cardAppear 0.5s var(--ease-out) both;
+  padding: 20px 16px calc(var(--sab) + 110px);
+  min-height: 100%;
 }
+.wallet-stack.expanded-mode {
+  padding-top: 80px;
+}
+
+.stack-card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: var(--ca);
+  margin-bottom: -76%; /* this creates the stacked overlap */
+  transition: transform 0.55s var(--ease-out), margin-bottom 0.55s var(--ease-out), opacity 0.4s ease;
+  will-change: transform;
+  animation: cardAppear 0.5s var(--ease-out) both;
+  cursor: pointer;
+}
+.stack-card:last-child { margin-bottom: 0; }
+
+/* When expanded mode, all cards spread out */
+.wallet-stack.expanded-mode .stack-card {
+  margin-bottom: 14px;
+}
+.wallet-stack.expanded-mode .stack-card:last-child {
+  margin-bottom: 0;
+}
+
+/* Selected card scrolls to top of view */
+.stack-card.selected {
+  z-index: 100;
+}
+
 @keyframes cardAppear {
   from { opacity: 0; transform: translateY(24px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .card-scene {
-  width: 100%;
-  aspect-ratio: var(--ca);
+  width: 100%; height: 100%;
   perspective: 1400px;
-  cursor: pointer;
 }
 .card-flipper {
   width: 100%; height: 100%;
@@ -286,7 +224,7 @@ button {
   transform-style: preserve-3d;
   transition: transform 0.72s cubic-bezier(0.34, 1.25, 0.64, 1);
 }
-.card-item.flipped .card-flipper { transform: rotateY(180deg); }
+.stack-card.flipped .card-flipper { transform: rotateY(180deg); }
 
 .card-face {
   position: absolute; width: 100%; height: 100%;
@@ -302,183 +240,92 @@ button {
 }
 .card-face.back { transform: rotateY(180deg); }
 
-/* ================================================================
-   CARD THEMES — FRONT
-================================================================ */
-
-/* CREDIT / DEBIT */
-.theme-credit .card-face.front {
-  background: linear-gradient(148deg, #090918 0%, #131340 45%, #1a1050 100%);
+/* THEMES */
+.theme-credit .card-face.front { background: linear-gradient(148deg,#090918 0%,#131340 45%,#1a1050 100%); }
+.theme-credit .holo-layer { position:absolute; inset:0; z-index:1;
+  background: linear-gradient(110deg, transparent 25%, rgba(123,92,240,0.08) 35%, rgba(0,200,255,0.06) 45%, rgba(255,100,200,0.05) 55%, transparent 65%);
+  background-size: 300% 300%; animation: holoShift 6s ease-in-out infinite alternate;
 }
-.theme-credit .holo-layer {
-  position: absolute; inset: 0; z-index: 1;
-  background: linear-gradient(110deg,
-    transparent 25%,
-    rgba(123,92,240,0.08) 35%,
-    rgba(0,200,255,0.06) 45%,
-    rgba(255,100,200,0.05) 55%,
-    transparent 65%
-  );
-  background-size: 300% 300%;
-  animation: holoShift 6s ease-in-out infinite alternate;
-}
-.theme-credit .grid-layer {
-  position: absolute; inset: 0; z-index: 0;
-  background-image:
-    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+.theme-credit .grid-layer { position:absolute; inset:0; z-index:0;
+  background-image: linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
   background-size: 24px 24px;
 }
-.theme-credit .glow-layer {
-  position: absolute; z-index: 0;
-  top: -60%; right: -30%; width: 100%; height: 100%;
-  background: radial-gradient(circle, rgba(123,92,240,0.22) 0%, transparent 55%);
-}
-.theme-credit .glow-layer2 {
-  position: absolute; z-index: 0;
-  bottom: -50%; left: -20%; width: 70%; height: 80%;
-  background: radial-gradient(circle, rgba(0,200,255,0.1) 0%, transparent 60%);
-}
-@keyframes holoShift {
-  0%   { background-position: 0% 50%; }
-  100% { background-position: 100% 50%; }
-}
+@keyframes holoShift { 0%{background-position:0% 50%} 100%{background-position:100% 50%} }
 
-/* AADHAAR */
-.theme-aadhaar .card-face.front {
-  background: linear-gradient(148deg, #003087 0%, #0050B3 55%, #0072CE 100%);
-}
-.theme-aadhaar .deco-circle {
-  position: absolute; z-index: 0;
-  top: -40%; right: -15%; width: 90%; height: 90%;
-  border-radius: 50%;
+.theme-aadhaar .card-face.front { background: linear-gradient(148deg,#003087 0%,#0050B3 55%,#0072CE 100%); }
+.theme-aadhaar .deco-circle { position:absolute; top:-40%; right:-15%; width:90%; height:90%; border-radius:50%;
   background: radial-gradient(circle, rgba(255,255,255,0.07) 0%, transparent 60%);
 }
-.theme-aadhaar .deco-lines {
-  position: absolute; inset: 0; z-index: 0; overflow: hidden;
-  background: repeating-linear-gradient(
-    -25deg, transparent, transparent 18px,
-    rgba(255,255,255,0.02) 18px, rgba(255,255,255,0.02) 19px
-  );
-}
 
-/* PAN */
-.theme-pan .card-face.front {
-  background: linear-gradient(148deg, #F5EDD8 0%, #EAD9B8 100%);
-  color: #1C1206;
-}
+.theme-pan .card-face.front { background: linear-gradient(148deg,#F5EDD8 0%,#EAD9B8 100%); color: #1C1206; }
+.theme-voter .card-face.front { background: linear-gradient(148deg,#14012B 0%,#2D1275 55%,#1A4068 100%); }
+.theme-driving .card-face.front { background: linear-gradient(148deg,#0A2416 0%,#134A2C 55%,#1A6040 100%); }
+.theme-passport .card-face.front { background: linear-gradient(148deg,#1F1B0E 0%,#3D2F0F 55%,#5C3E0A 100%); }
+.theme-forex .card-face.front { background: linear-gradient(148deg,#0F1A2E 0%,#1B3060 55%,#3A5BA8 100%); }
+.theme-evisa .card-face.front { background: linear-gradient(148deg,#15302E 0%,#1F5A50 55%,#3E9080 100%); }
+.theme-flight .card-face.front { background: linear-gradient(148deg,#0B1A33 0%,#1F3A6B 55%,#3060A0 100%); }
+.theme-train .card-face.front { background: linear-gradient(148deg,#2B0808 0%,#601818 55%,#A03030 100%); }
+.theme-movie .card-face.front { background: linear-gradient(148deg,#1A0A1F 0%,#451050 55%,#8030A0 100%); }
+.theme-generic .card-face.front { background: linear-gradient(148deg,#0D0D1E 0%,#1A1535 55%,#0E1A35 100%); }
 
-/* VOTER */
-.theme-voter .card-face.front {
-  background: linear-gradient(148deg, #14012B 0%, #2D1275 55%, #1A4068 100%);
-}
-.theme-voter .deco-stars {
-  position: absolute; inset: 0; z-index: 0;
-  background:
-    radial-gradient(1.5px 1.5px at 20% 25%, rgba(255,255,255,0.25) 0%, transparent 100%),
-    radial-gradient(1px 1px at 60% 15%, rgba(255,255,255,0.2) 0%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 80% 40%, rgba(255,255,255,0.2) 0%, transparent 100%),
-    radial-gradient(1px 1px at 40% 60%, rgba(255,255,255,0.15) 0%, transparent 100%),
-    radial-gradient(1px 1px at 75% 70%, rgba(255,255,255,0.2) 0%, transparent 100%);
-}
-
-/* DRIVING LICENSE */
-.theme-driving .card-face.front {
-  background: linear-gradient(148deg, #0A2416 0%, #134A2C 55%, #1A6040 100%);
-}
-
-/* GENERIC */
-.theme-generic .card-face.front {
-  background: linear-gradient(148deg, #0D0D1E 0%, #1A1535 55%, #0E1A35 100%);
-}
-
-/* ================================================================
-   CARD CONTENT LAYOUT (front)
-================================================================ */
-.cf { /* card front content */
+/* CARD CONTENT */
+.cf {
   position: relative; z-index: 2;
   width: 100%; height: 100%;
   padding: 20px 22px;
-  display: flex; flex-direction: column;
-  justify-content: space-between;
+  display: flex; flex-direction: column; justify-content: space-between;
 }
 .cf-top { display: flex; justify-content: space-between; align-items: flex-start; }
-.cf-issuer { font-size: 10px; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; opacity: 0.45; }
-.cf-product { font-size: 13px; font-weight: 700; margin-top: 2px; opacity: 0.9; }
-.cf-mid {}
+.cf-issuer { font-size: 10px; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; opacity: 0.55; }
+.cf-product { font-size: 13px; font-weight: 700; margin-top: 2px; opacity: 0.95; }
 .cf-num {
   font-family: 'SF Mono', 'Menlo', 'Courier New', monospace;
-  font-size: 16px; letter-spacing: 2.5px; font-weight: 500;
+  font-size: 15px; letter-spacing: 1.5px; font-weight: 600;
   display: flex; align-items: center; gap: 10px;
   margin-top: 10px;
+  word-break: break-all;
 }
-.cf-num-masked { opacity: 0.4; letter-spacing: 4px; font-size: 18px; }
-.cf-bot { display: flex; justify-content: space-between; align-items: flex-end; }
-.cf-field {}
-.cf-flabel { font-size: 7.5px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; opacity: 0.38; margin-bottom: 3px; }
-.cf-fval { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.cf-num-text { flex: 1; min-width: 0; }
+.cf-bot { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
+.cf-field { min-width: 0; }
+.cf-flabel { font-size: 7.5px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; opacity: 0.5; margin-bottom: 3px; }
+.cf-fval { font-size: 12.5px; font-weight: 600; display: flex; align-items: center; gap: 6px; word-break: break-word; }
 
-/* PAN card dark overrides */
-.theme-pan .cf-issuer,
-.theme-pan .cf-product,
-.theme-pan .cf-num,
-.theme-pan .cf-fval { color: #2D1A04; }
-.theme-pan .cf-flabel { color: #2D1A04; opacity: 0.38; }
-.theme-pan .cf-num-masked { color: #2D1A04; opacity: 0.3; }
+.theme-pan .cf-issuer, .theme-pan .cf-product, .theme-pan .cf-num, .theme-pan .cf-fval { color: #2D1A04; }
+.theme-pan .cf-flabel { color: #2D1A04; opacity: 0.5; }
 
-/* ================================================================
-   CHIP SVG
-================================================================ */
 .chip-wrap { margin-bottom: 2px; }
 
-/* ================================================================
-   COPY BUTTON
-================================================================ */
+/* COPY BUTTON */
 .cp-btn {
-  padding: 5px 6px;
-  background: rgba(255,255,255,0.13);
+  padding: 6px 7px;
+  background: rgba(255,255,255,0.18);
   border-radius: 8px;
-  color: inherit; display: flex; align-items: center; justify-content: center;
+  color: inherit; display: inline-flex; align-items: center; justify-content: center;
   flex-shrink: 0;
   transition: all 0.15s;
+  min-width: 24px; min-height: 24px;
 }
-.cp-btn:active { background: rgba(255,255,255,0.28); transform: scale(0.86); }
-.cp-btn svg { width: 11px; height: 11px; fill: currentColor; }
-.theme-pan .cp-btn { background: rgba(0,0,0,0.08); }
+.cp-btn:active { background: rgba(255,255,255,0.35); transform: scale(0.86); }
+.cp-btn svg { width: 12px; height: 12px; fill: currentColor; pointer-events: none; }
+.theme-pan .cp-btn { background: rgba(0,0,0,0.12); }
+.theme-pan .cp-btn:active { background: rgba(0,0,0,0.22); }
 
-/* Tricolor stripe */
 .tricolor {
   position: absolute; bottom: 0; left: 0; right: 0; height: 5px;
   background: linear-gradient(to right, #FF9933 33.33%, #FFFFFF 33.33%, #FFFFFF 66.66%, #138808 66.66%);
   z-index: 3;
 }
 
-/* ================================================================
-   CARD BACK — UNIVERSAL
-================================================================ */
-.cb { /* card back */
-  width: 100%; height: 100%;
-  display: flex; flex-direction: column;
-  position: relative; overflow: hidden;
-  border-radius: var(--cr);
-}
-
-/* Credit/Debit back */
-.cb-credit {
-  background: linear-gradient(148deg, #090918 0%, #141440 100%);
-}
-.cb-magstripe {
-  width: 100%; height: 38px; margin-top: 22px; flex-shrink: 0;
-  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 50%, #1a1a1a 100%);
-}
+/* CARD BACK */
+.cb { width: 100%; height: 100%; display: flex; flex-direction: column; position: relative; overflow: hidden; border-radius: var(--cr); }
+.cb-credit { background: linear-gradient(148deg,#090918 0%,#141440 100%); }
+.cb-magstripe { width: 100%; height: 38px; margin-top: 22px; flex-shrink: 0; background: linear-gradient(135deg,#1a1a1a 0%,#2a2a2a 50%,#1a1a1a 100%); }
 .cb-body { flex: 1; padding: 10px 18px 14px; display: flex; flex-direction: column; justify-content: space-between; }
 .cb-sigstrip {
-  background: repeating-linear-gradient(
-    -45deg, rgba(255,255,255,0.04), rgba(255,255,255,0.04) 2px,
-    rgba(255,255,255,0.01) 2px, rgba(255,255,255,0.01) 8px
-  );
+  background: repeating-linear-gradient(-45deg, rgba(255,255,255,0.04), rgba(255,255,255,0.04) 2px, rgba(255,255,255,0.01) 2px, rgba(255,255,255,0.01) 8px);
   border-radius: 5px; padding: 8px 10px;
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
 }
 .cb-siglabel { font-size: 7px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--t3); }
 .cb-sigsub { font-size: 9px; letter-spacing: 1.5px; color: var(--t4); margin-top: 2px; }
@@ -486,27 +333,20 @@ button {
   background: white; color: #000;
   padding: 4px 10px; border-radius: 4px;
   font-family: 'SF Mono', monospace; font-size: 14px; font-weight: 700; letter-spacing: 3px;
-  flex-shrink: 0;
+  flex-shrink: 0; display: flex; align-items: center; gap: 6px;
 }
 .cb-cvv-label { font-size: 7px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--t3); text-align: right; margin-bottom: 3px; }
-.cb-inforow { display: flex; gap: 16px; }
-.cb-infoitem {}
-.cb-infol { font-size: 7.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--t3); margin-bottom: 2px; }
-.cb-infov { font-size: 11px; font-weight: 500; color: var(--t2); line-height: 1.3; }
 .cb-foot { display: flex; justify-content: space-between; align-items: flex-end; }
 .cb-bankname { font-size: 8px; font-weight: 600; letter-spacing: 0.5px; color: var(--t4); }
 .cb-barcode { display: flex; align-items: flex-end; gap: 1.5px; height: 22px; opacity: 0.25; }
 .cb-barcode span { background: white; border-radius: 1px; }
 
-/* ID card back */
-.cb-id {
-  padding: 16px 18px 16px;
-  display: flex; flex-direction: column; gap: 10px;
-}
+.cb-id { padding: 16px 18px 16px; display: flex; flex-direction: column; gap: 10px; height: 100%; }
 .cb-id-header { font-size: 8px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--t3); }
-.cb-id-field {}
+.cb-id-field { display: flex; align-items: flex-start; gap: 8px; }
+.cb-id-field-content { flex: 1; min-width: 0; }
 .cb-id-label { font-size: 7.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--t3); margin-bottom: 3px; }
-.cb-id-val { font-size: 11.5px; font-weight: 500; line-height: 1.45; color: var(--t2); }
+.cb-id-val { font-size: 11.5px; font-weight: 500; line-height: 1.45; color: var(--t2); word-break: break-word; }
 .cb-qr-placeholder {
   width: 46px; height: 46px;
   border: 1.5px solid rgba(255,255,255,0.18); border-radius: 6px;
@@ -514,28 +354,39 @@ button {
   opacity: 0.35; flex-shrink: 0;
 }
 
-/* PAN back */
-.cb-pan {
-  background: linear-gradient(148deg, #F5EDD8 0%, #EAD9B8 100%);
-  color: #2D1A04;
-  padding: 16px 18px;
-  display: flex; flex-direction: column; gap: 10px;
-}
-.cb-pan .cb-id-label { color: #2D1A04; opacity: 0.4; }
-.cb-pan .cb-id-val { color: #2D1A04; opacity: 0.75; }
-.cb-pan .cb-id-header { color: #2D1A04; opacity: 0.35; }
-.cb-pan-barcode { display: flex; align-items: flex-end; gap: 1.5px; height: 22px; opacity: 0.18; flex-shrink: 0; }
+.cb-pan { background: linear-gradient(148deg,#F5EDD8 0%,#EAD9B8 100%); color: #2D1A04; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+.cb-pan .cb-id-label { color: #2D1A04; opacity: 0.5; }
+.cb-pan .cb-id-val { color: #2D1A04; opacity: 0.8; }
+.cb-pan .cb-id-header { color: #2D1A04; opacity: 0.4; }
+.cb-pan-barcode { display: flex; align-items: flex-end; gap: 1.5px; height: 22px; opacity: 0.2; }
 .cb-pan-barcode span { background: #2D1A04; border-radius: 1px; }
+.cb-pan .cp-btn { background: rgba(0,0,0,0.12); }
 
-/* ================================================================
-   ACTION BAR (below card)
-================================================================ */
+/* TICKET / PASS LAYOUT */
+.cf-ticket {
+  position: relative; z-index: 2; width: 100%; height: 100%;
+  padding: 16px 20px;
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.tk-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.tk-route { display: flex; align-items: center; gap: 14px; margin: 8px 0; }
+.tk-loc { flex: 1; min-width: 0; }
+.tk-code { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; letter-spacing: -1px; line-height: 1; }
+.tk-city { font-size: 9px; font-weight: 600; opacity: 0.55; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; word-break: break-word; }
+.tk-arrow { opacity: 0.5; flex-shrink: 0; }
+.tk-bot { display: flex; justify-content: space-between; gap: 8px; }
+.tk-field { min-width: 0; flex: 1; }
+.tk-flabel { font-size: 7px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; opacity: 0.5; margin-bottom: 2px; }
+.tk-fval { font-size: 11px; font-weight: 600; word-break: break-word; }
+
+/* ACTION BAR */
 .card-actions {
-  display: flex; gap: 8px; margin-top: 0;
+  display: flex; gap: 8px;
   height: 0; overflow: hidden; opacity: 0;
   transition: all 0.38s var(--ease-out);
+  margin-top: 0;
 }
-.card-item.expanded .card-actions {
+.stack-card.selected .card-actions {
   height: 40px; opacity: 1; margin-top: 10px;
 }
 .act-btn {
@@ -549,9 +400,7 @@ button {
 .act-btn.danger { color: #FF3B30; border-color: rgba(255,59,48,0.18); }
 .act-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
-/* ================================================================
-   EMPTY STATE
-================================================================ */
+/* EMPTY */
 .empty {
   display: flex; flex-direction: column; align-items: center;
   padding: 60px 40px; text-align: center; min-height: 50vh; justify-content: center;
@@ -562,29 +411,57 @@ button {
   display: flex; align-items: center; justify-content: center;
   margin-bottom: 22px;
 }
-.empty-title {
-  font-family: 'Syne', sans-serif; font-size: 21px; font-weight: 700;
-  letter-spacing: -0.5px; margin-bottom: 8px;
-}
-.empty-sub { font-size: 14px; color: var(--t2); line-height: 1.5; max-width: 230px; }
+.empty-title { font-family: 'Syne', sans-serif; font-size: 21px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 8px; }
+.empty-sub { font-size: 14px; color: var(--t2); line-height: 1.5; max-width: 250px; }
 
-/* ================================================================
-   SCANNER OVERLAY
-================================================================ */
+/* ADD MENU SHEET */
+.sheet-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
+  z-index: 2900; opacity: 0; pointer-events: none;
+  transition: opacity 0.3s var(--ease-out);
+}
+.sheet-overlay.show { opacity: 1; pointer-events: all; }
+.sheet {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: rgba(20,20,24,0.96); backdrop-filter: blur(28px);
+  border-top-left-radius: 24px; border-top-right-radius: 24px;
+  padding: 14px 20px calc(var(--sab) + 18px);
+  z-index: 3050; transform: translateY(100%);
+  transition: transform 0.4s var(--ease-out);
+  border-top: 1px solid var(--b2);
+}
+.sheet.show { transform: translateY(0); }
+.sheet-grip { width: 38px; height: 4px; background: var(--s4); border-radius: 2px; margin: 0 auto 18px; }
+.sheet-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 14px; }
+.sheet-opt {
+  display: flex; align-items: center; gap: 14px;
+  width: 100%; padding: 14px 14px;
+  background: var(--s1); border: 1px solid var(--b1);
+  border-radius: 14px; margin-bottom: 8px;
+  text-align: left; color: var(--t1);
+  transition: all 0.18s var(--spring);
+}
+.sheet-opt:active { transform: scale(0.97); background: var(--s2); }
+.sheet-opt-icon {
+  width: 38px; height: 38px; flex-shrink: 0;
+  background: var(--s3); border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+}
+.sheet-opt-icon svg { width: 18px; height: 18px; stroke: var(--accent-light); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.sheet-opt-body { flex: 1; min-width: 0; }
+.sheet-opt-title { font-size: 14px; font-weight: 600; }
+.sheet-opt-sub { font-size: 11px; color: var(--t2); margin-top: 2px; }
+
+/* SCANNER */
 .scanner {
   position: fixed; inset: 0; background: #000; z-index: 3000;
   display: flex; flex-direction: column;
-  overflow: hidden;                  /* never scroll inside scanner */
-  overscroll-behavior: none;
-  touch-action: none;                /* block all touch gestures escaping */
+  overflow: hidden; overscroll-behavior: none; touch-action: none;
   transform: translateY(100%);
   transition: transform 0.52s var(--ease-out);
-  /* Use full safe-area aware height */
-  height: 100%;
-  height: 100dvh;
+  height: 100%; height: 100dvh;
 }
 .scanner.open { transform: translateY(0); }
-
 .scanner-hdr {
   position: absolute; top: 0; left: 0; right: 0;
   padding: calc(var(--sat) + 14px) 20px 16px;
@@ -592,9 +469,7 @@ button {
   z-index: 10;
   background: linear-gradient(to bottom, rgba(0,0,0,0.82), transparent);
 }
-.scanner-title {
-  font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; letter-spacing: -0.3px;
-}
+.scanner-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; letter-spacing: -0.3px; }
 .close-btn {
   width: 32px; height: 32px;
   background: rgba(255,255,255,0.14); border-radius: 50%;
@@ -602,82 +477,34 @@ button {
   font-size: 15px; color: white; transition: all 0.2s;
 }
 .close-btn:active { transform: scale(0.86); background: rgba(255,255,255,0.25); }
-
-/* Camera view */
 .cam-view { flex: 1; position: relative; overflow: hidden; }
 #videoEl { width: 100%; height: 100%; object-fit: cover; display: block; }
-
-/* Scan frame */
-.scan-frame {
-  position: absolute; inset: 0;
-  display: flex; align-items: center; justify-content: center;
-  pointer-events: none; z-index: 5;
-}
-.frame-box {
-  width: 86%; aspect-ratio: var(--ca);
-  position: relative;
-}
-.corner {
-  position: absolute; width: 26px; height: 26px;
-  border-color: var(--accent); border-style: solid; border-width: 0;
-  transition: filter 0.3s;
-}
+.scan-frame { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 5; }
+.frame-box { width: 86%; aspect-ratio: var(--ca); position: relative; }
+.corner { position: absolute; width: 26px; height: 26px; border-color: var(--accent); border-style: solid; border-width: 0; transition: filter 0.3s; }
 .corner.tl { top:0;left:0; border-top-width:3px; border-left-width:3px; border-radius:7px 0 0 0; }
 .corner.tr { top:0;right:0; border-top-width:3px; border-right-width:3px; border-radius:0 7px 0 0; }
 .corner.bl { bottom:0;left:0; border-bottom-width:3px; border-left-width:3px; border-radius:0 0 0 7px; }
 .corner.br { bottom:0;right:0; border-bottom-width:3px; border-right-width:3px; border-radius:0 0 7px 0; }
-
-/* Scan line */
 .scan-line {
   position: absolute; left: 0; right: 0; height: 2px; top: 0;
   background: linear-gradient(to right, transparent, var(--accent) 30%, var(--accent-light) 50%, var(--accent) 70%, transparent);
   box-shadow: 0 0 10px var(--accent-glow), 0 0 2px var(--accent);
   border-radius: 1px; opacity: 0;
-  pointer-events: none;
-  /* No animation by default */
 }
-
-/* SCANNING: beam sweeping top → bottom */
-.sf-scanning .scan-line {
-  opacity: 1;
-  animation: scanBeam 2.2s linear infinite;
-}
-.sf-scanning .corner {
-  filter: drop-shadow(0 0 5px var(--accent));
-  animation: none;
-}
-
-/* PROCESSING: faster sweep + pulsing corners = "working" feel */
-.sf-processing .scan-line {
-  opacity: 1;
-  animation: scanBeam 0.6s linear infinite;
-}
-.sf-processing .corner {
-  filter: drop-shadow(0 0 10px var(--accent-mid));
-  animation: cornerPulse 0.45s ease-in-out infinite alternate;
-}
-
-/* DONE / IDLE: everything off */
+.sf-scanning .scan-line { opacity: 1; animation: scanBeam 2.2s linear infinite; }
+.sf-processing .scan-line { opacity: 1; animation: scanBeam 0.6s linear infinite; }
+.sf-processing .corner { filter: drop-shadow(0 0 10px var(--accent-mid)); animation: cornerPulse 0.45s ease-in-out infinite alternate; }
 .sf-idle .scan-line { opacity: 0; animation: none; }
-.sf-idle .corner    { filter: none; animation: none; }
+@keyframes scanBeam { 0%{top:0%} 100%{top:calc(100% - 2px)} }
+@keyframes cornerPulse { from{opacity:0.5} to{opacity:1} }
 
-@keyframes scanBeam {
-  0%   { top: 0%; }
-  100% { top: calc(100% - 2px); }
-}
-@keyframes cornerPulse {
-  from { opacity: 0.5; }
-  to   { opacity: 1;   }
-}
-
-/* Processing overlay */
 .proc-overlay {
   position: absolute; inset: 0; background: rgba(0,0,0,0.65);
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 14px; z-index: 20;
-  opacity: 0; pointer-events: none;
-  transition: opacity 0.3s var(--ease-out);
+  opacity: 0; pointer-events: none; transition: opacity 0.3s var(--ease-out);
 }
 .proc-overlay.show { opacity: 1; pointer-events: all; }
 .proc-ring {
@@ -689,11 +516,8 @@ button {
 @keyframes spin { to{transform:rotate(360deg)} }
 .proc-text { font-size: 16px; font-weight: 600; color: white; }
 .proc-sub { font-size: 12px; color: var(--t2); }
-
-/* Capture flash */
 .flash { position: absolute; inset: 0; background: white; opacity: 0; pointer-events: none; z-index: 18; transition: opacity 0.25s; }
 
-/* Scanner bottom */
 .scanner-bot {
   position: absolute; bottom: 0; left: 0; right: 0;
   padding: 20px 24px calc(var(--sab) + 22px);
@@ -702,17 +526,12 @@ button {
   z-index: 10;
 }
 .step-dots { display: flex; gap: 8px; align-items: center; }
-.sdot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: rgba(255,255,255,0.25);
-  transition: all 0.35s var(--spring);
-}
+.sdot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.25); transition: all 0.35s var(--spring); }
 .sdot.active { background: var(--accent); width: 22px; border-radius: 3px; }
 .sdot.done { background: var(--accent-light); opacity: 0.7; }
 .scan-info { text-align: center; }
 .scan-instr { font-size: 16px; font-weight: 600; }
 .scan-sub-text { font-size: 12px; color: var(--t2); margin-top: 2px; }
-
 .shutter {
   width: 70px; height: 70px;
   border-radius: 50%; border: 3px solid rgba(255,255,255,0.45);
@@ -721,21 +540,21 @@ button {
   transition: transform 0.2s var(--spring);
 }
 .shutter:active { transform: scale(0.88); }
-.shutter::before {
-  content: '';
-  width: 54px; height: 54px; background: white; border-radius: 50%;
-  transition: all 0.2s var(--spring);
-}
+.shutter::before { content: ''; width: 54px; height: 54px; background: white; border-radius: 50%; transition: all 0.2s var(--spring); }
 .shutter:active::before { width: 46px; height: 46px; }
+.scanner-bot .skip-back-btn {
+  font-size: 12px; color: var(--accent-light); padding: 6px 16px;
+}
 
-/* ================================================================
-   TOAST
-================================================================ */
+/* PDF UPLOAD */
+input[type=file] { display: none; }
+
+/* TOAST */
 .toast {
   position: fixed;
   bottom: calc(var(--sab) + 94px); left: 50%;
   transform: translateX(-50%) translateY(16px);
-  background: rgba(30,30,36,0.92); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  background: rgba(30,30,36,0.92); backdrop-filter: blur(20px);
   border: 1px solid var(--b3); border-radius: 100px;
   padding: 11px 18px 11px 14px;
   display: flex; align-items: center; gap: 9px;
@@ -746,34 +565,20 @@ button {
   max-width: calc(100vw - 40px);
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-.toast-dot {
-  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
-  transition: background 0.2s;
-}
+.toast-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .toast.success .toast-dot { background: #30D158; }
-.toast.error   .toast-dot { background: #FF3B30; }
-.toast.info    .toast-dot { background: var(--accent); }
+.toast.error .toast-dot { background: #FF3B30; }
+.toast.info .toast-dot { background: var(--accent); }
 
-/* ================================================================
-   EXPANDED CARD STATE
-================================================================ */
-.card-item.expanded .card-scene {
-  filter: drop-shadow(0 24px 48px rgba(0,0,0,0.8)) drop-shadow(0 0 1px rgba(123,92,240,0.2));
-}
-
-/* Tap hint dot on card */
 .flip-hint {
   position: absolute; bottom: 11px; left: 50%; transform: translateX(-50%);
   display: flex; gap: 4px; z-index: 10; pointer-events: none;
   opacity: 0; transition: opacity 0.3s 0.1s;
 }
-.card-item.expanded .flip-hint { opacity: 1; }
-.flip-hint span {
-  width: 4px; height: 4px; border-radius: 50%;
-  background: rgba(255,255,255,0.28);
-  display: block;
-}
+.stack-card.selected .flip-hint { opacity: 1; }
+.flip-hint span { width: 4px; height: 4px; border-radius: 50%; background: rgba(255,255,255,0.28); display: block; }
 .flip-hint span.fh-active { background: rgba(255,255,255,0.65); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
@@ -787,69 +592,81 @@ button {
 </div>
 
 <div class="app">
-
-  <!-- HEADER -->
   <header class="header">
     <div class="wordmark">iris.</div>
     <div class="header-actions">
+      <span class="count-badge" id="countBadge">0</span>
       <button class="key-btn" onclick="promptApiKey()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="8" cy="15" r="4"/><path d="M11.8 11.8L20 4"/><path d="M18 6l2 2"/><path d="M15 9l2 2"/>
         </svg>
         API Key
       </button>
-      <button class="add-btn" onclick="openScanner()">
+      <button class="add-btn" onclick="openAddSheet()">
         <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
     </div>
   </header>
 
-  <!-- SCROLL -->
   <div class="scroll-area" id="scrollArea">
     <div class="stats-bar">
-      <div class="stats-label">Secured Cards</div>
-      <div class="stats-count" id="statsCount">0<em>cards</em></div>
+      <div class="stats-label">Wallet</div>
+      <div class="stats-sub" id="statsSub">Tap a card to expand · Double-tap to flip</div>
     </div>
-    <div class="section-label" id="sectionLabel">My Wallet</div>
-    <div class="cards-wrap" id="cardsWrap"></div>
+    <div class="wallet-stack" id="walletStack"></div>
   </div>
-
 </div>
 
-<!-- SCANNER OVERLAY -->
-<div id="scanner" class="scanner">
+<!-- ADD SHEET -->
+<div class="sheet-overlay" id="sheetOverlay" onclick="closeAddSheet()"></div>
+<div class="sheet" id="addSheet">
+  <div class="sheet-grip"></div>
+  <div class="sheet-title">Add to Wallet</div>
+  <button class="sheet-opt" onclick="openScanner()">
+    <div class="sheet-opt-icon">
+      <svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="14" rx="2"/><circle cx="12" cy="13" r="4"/></svg>
+    </div>
+    <div class="sheet-opt-body">
+      <div class="sheet-opt-title">Scan Card or ID</div>
+      <div class="sheet-opt-sub">Aadhaar, PAN, Voter, License, Passport, Credit/Debit/Forex</div>
+    </div>
+  </button>
+  <button class="sheet-opt" onclick="openTicketUpload()">
+    <div class="sheet-opt-icon">
+      <svg viewBox="0 0 24 24"><path d="M2 9V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v3"/><path d="M2 15v3a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-3"/><path d="M2 9a3 3 0 0 1 0 6"/><path d="M22 9a3 3 0 0 0 0 6"/><line x1="10" y1="6" x2="10" y2="20"/></svg>
+    </div>
+    <div class="sheet-opt-body">
+      <div class="sheet-opt-title">Upload Ticket / Pass</div>
+      <div class="sheet-opt-sub">Flight, train, movie, e-visa (PDF)</div>
+    </div>
+  </button>
+</div>
 
+<input type="file" id="ticketFile" accept="application/pdf,image/*" onchange="handleTicketUpload(event)">
+
+<!-- SCANNER -->
+<div id="scanner" class="scanner">
   <div class="scanner-hdr">
     <div class="scanner-title" id="scanTitle">Scan Card</div>
     <button class="close-btn" onclick="closeScanner()">✕</button>
   </div>
-
   <div class="cam-view" id="camView">
     <video id="videoEl" autoplay playsinline muted></video>
     <canvas id="snapCanvas" style="display:none"></canvas>
-
-    <!-- Scan frame -->
     <div class="scan-frame" id="scanFrame">
       <div class="frame-box" id="frameBox">
-        <div class="corner tl"></div>
-        <div class="corner tr"></div>
-        <div class="corner bl"></div>
-        <div class="corner br"></div>
+        <div class="corner tl"></div><div class="corner tr"></div>
+        <div class="corner bl"></div><div class="corner br"></div>
         <div class="scan-line"></div>
       </div>
     </div>
-
-    <!-- Flash -->
     <div class="flash" id="flashEl"></div>
-
-    <!-- Processing overlay -->
     <div class="proc-overlay" id="procOverlay">
       <div class="proc-ring"></div>
       <div class="proc-text">Iris AI Scanning…</div>
       <div class="proc-sub">Extracting all card details</div>
     </div>
   </div>
-
   <div class="scanner-bot">
     <div class="step-dots">
       <div class="sdot" id="sd0"></div>
@@ -861,120 +678,108 @@ button {
       <div class="scan-sub-text" id="scanSubText">Align within frame, then tap to capture</div>
     </div>
     <button class="shutter" id="shutterBtn" onclick="captureFrame()"></button>
+    <button class="skip-back-btn" id="skipBackBtn" onclick="skipBack()" style="display:none">Skip back side (single-sided)</button>
   </div>
-
 </div>
 
-<!-- TOAST -->
 <div class="toast" id="toast">
   <div class="toast-dot" id="toastDot"></div>
   <span id="toastMsg">—</span>
 </div>
 
 <script>
-// ================================================================
-// IRIS WALLET — Core Engine
-// ================================================================
-
 'use strict';
 
-// --- Constants ---
 const GEMINI_MODEL = 'gemini-2.5-flash';
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 const DB_NAME = 'IrisWalletV5';
 const DB_VERSION = 1;
 
-// --- State ---
 let db = null;
 let camStream = null;
 let scan = { step: 0, front: null, back: null };
-let expandedId = null;
+let selectedId = null;
 let toastTimer = null;
+let lastTapTime = 0;
+let lastTapId = null;
 
-// --- DOM shortcuts ---
 const $ = id => document.getElementById(id);
-const scannerEl  = $('scanner');
-const videoEl    = $('videoEl');
+const scannerEl = $('scanner');
+const videoEl = $('videoEl');
 const snapCanvas = $('snapCanvas');
-const scanFrame  = $('scanFrame');
-const procOverlay= $('procOverlay');
-const flashEl    = $('flashEl');
-const cardsWrap  = $('cardsWrap');
-const statsCount = $('statsCount');
-const sectionLabel = $('sectionLabel');
-const scanTitle  = $('scanTitle');
-const scanInstr  = $('scanInstr');
-const scanSubText= $('scanSubText');
+const scanFrame = $('scanFrame');
+const procOverlay = $('procOverlay');
+const flashEl = $('flashEl');
+const walletStack = $('walletStack');
+const countBadge = $('countBadge');
+const scanTitle = $('scanTitle');
+const scanInstr = $('scanInstr');
+const scanSubText = $('scanSubText');
 const shutterBtn = $('shutterBtn');
+const skipBackBtn = $('skipBackBtn');
+const statsSub = $('statsSub');
 
-// ================================================================
 // DATABASE
-// ================================================================
 function openDB() {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = e => {
       const d = e.target.result;
-      if (!d.objectStoreNames.contains('cards')) {
-        d.createObjectStore('cards', { keyPath: 'id' });
-      }
+      if (!d.objectStoreNames.contains('cards')) d.createObjectStore('cards', { keyPath: 'id' });
     };
     req.onsuccess = e => resolve(e.target.result);
-    req.onerror   = () => reject(req.error);
+    req.onerror = () => reject(req.error);
   });
 }
 function txAll() {
   return new Promise((res, rej) => {
     const req = db.transaction('cards','readonly').objectStore('cards').getAll();
-    req.onsuccess = () => res(req.result);
-    req.onerror   = () => rej(req.error);
+    req.onsuccess = () => res(req.result); req.onerror = () => rej(req.error);
   });
 }
 function txAdd(card) {
   return new Promise((res, rej) => {
     const req = db.transaction('cards','readwrite').objectStore('cards').add(card);
-    req.onsuccess = () => res();
-    req.onerror   = () => rej(req.error);
+    req.onsuccess = () => res(); req.onerror = () => rej(req.error);
   });
 }
 function txDel(id) {
   return new Promise((res, rej) => {
     const req = db.transaction('cards','readwrite').objectStore('cards').delete(id);
-    req.onsuccess = () => res();
-    req.onerror   = () => rej(req.error);
+    req.onsuccess = () => res(); req.onerror = () => rej(req.error);
   });
 }
 
-// ================================================================
 // API KEY
-// ================================================================
 function promptApiKey() {
   const cur = localStorage.getItem('iris_key') || '';
   const val = prompt('Gemini API Key:', cur);
   if (val === null) return;
   const k = val.trim();
-  if (k) {
-    localStorage.setItem('iris_key', k);
-    toast('API key saved', 'success');
-  } else {
-    localStorage.removeItem('iris_key');
-    toast('API key cleared', 'info');
-  }
+  if (k) { localStorage.setItem('iris_key', k); toast('API key saved', 'success'); }
+  else { localStorage.removeItem('iris_key'); toast('API key cleared', 'info'); }
 }
 
-// ================================================================
+// ADD SHEET
+function openAddSheet() {
+  $('sheetOverlay').classList.add('show');
+  $('addSheet').classList.add('show');
+}
+function closeAddSheet() {
+  $('sheetOverlay').classList.remove('show');
+  $('addSheet').classList.remove('show');
+}
+
 // SCANNER
-// ================================================================
 async function openScanner() {
+  closeAddSheet();
   if (!localStorage.getItem('iris_key')) {
     toast('Set your Gemini API key first', 'error');
     setTimeout(promptApiKey, 800);
     return;
   }
-  // Reset scan state
   scan = { step: 0, front: null, back: null };
   refreshScanUI();
-
   try {
     camStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }
@@ -982,239 +787,354 @@ async function openScanner() {
     videoEl.srcObject = camStream;
     await videoEl.play().catch(() => {});
   } catch {
-    toast('Camera access denied — check permissions', 'error');
+    toast('Camera access denied', 'error');
     return;
   }
-
   scannerEl.classList.add('open');
   setFrameState('scanning');
 }
-
 function closeScanner() {
   stopCam();
   scannerEl.classList.remove('open');
-  // Must delay the idle state slightly so animation stops after overlay hides
   setTimeout(() => setFrameState('idle'), 550);
   procOverlay.classList.remove('show');
   shutterBtn.disabled = false;
   shutterBtn.style.opacity = '';
+  skipBackBtn.style.display = 'none';
 }
-
 function stopCam() {
   if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
   videoEl.srcObject = null;
 }
-
 function setFrameState(state) {
-  // states: 'idle' | 'scanning' | 'processing'
-  scanFrame.classList.remove('sf-idle', 'sf-scanning', 'sf-processing');
-  if (state === 'idle')       scanFrame.classList.add('sf-idle');
-  if (state === 'scanning')   scanFrame.classList.add('sf-scanning');
-  if (state === 'processing') scanFrame.classList.add('sf-processing');
+  scanFrame.classList.remove('sf-idle','sf-scanning','sf-processing');
+  scanFrame.classList.add('sf-' + state);
 }
 
 const SCAN_STEPS = [
-  { title: 'Scan Front', instr: 'Position front of card',         sub: 'Align within frame, then tap to capture' },
-  { title: 'Scan Back',  instr: 'Flip card — now scan the back',  sub: 'Hold steady, then tap to capture'        },
-  { title: 'Analyzing',  instr: 'AI extracting all card details', sub: 'Please wait a few seconds...'            },
+  { title: 'Scan Front', instr: 'Position front of card', sub: 'Align within frame, then tap to capture' },
+  { title: 'Scan Back', instr: 'Flip card — now scan the back', sub: 'Or skip if single-sided' },
+  { title: 'Analyzing', instr: 'AI extracting all card details', sub: 'Please wait a few seconds...' },
 ];
 
 function refreshScanUI() {
-  const stepIdx = Math.min(scan.step, 2);
-  const s = SCAN_STEPS[stepIdx];
-  scanTitle.textContent   = s.title;
-  scanInstr.textContent   = s.instr;
+  const idx = Math.min(scan.step, 2);
+  const s = SCAN_STEPS[idx];
+  scanTitle.textContent = s.title;
+  scanInstr.textContent = s.instr;
   scanSubText.textContent = s.sub;
   for (let i = 0; i < 3; i++) {
     const d = $('sd' + i);
     d.className = 'sdot';
-    if (i === stepIdx)    d.classList.add('active');
-    else if (i < stepIdx) d.classList.add('done');
+    if (i === idx) d.classList.add('active');
+    else if (i < idx) d.classList.add('done');
   }
-  const isProc = stepIdx === 2;
-  shutterBtn.disabled      = isProc;
+  const isProc = idx === 2;
+  shutterBtn.disabled = isProc;
   shutterBtn.style.opacity = isProc ? '0.3' : '';
+  skipBackBtn.style.display = (idx === 1) ? 'block' : 'none';
 }
 
 function captureFrame() {
-  if (!videoEl.videoWidth || !camStream) { toast('Camera not ready', 'error'); return; }
+  if (!videoEl.videoWidth || !camStream) { toast('Camera not ready','error'); return; }
   shutterBtn.disabled = true;
-
-  snapCanvas.width  = videoEl.videoWidth;
+  snapCanvas.width = videoEl.videoWidth;
   snapCanvas.height = videoEl.videoHeight;
   snapCanvas.getContext('2d').drawImage(videoEl, 0, 0);
   const imgData = snapCanvas.toDataURL('image/jpeg', 0.92);
-
   doFlash(() => {
     if (scan.step === 0) {
-      scan.front = imgData;
-      scan.step  = 1;
-      refreshScanUI(); // re-enables shutter for back capture
-      setFrameState('scanning');
-      toast('Front captured', 'success');
+      scan.front = imgData; scan.step = 1;
+      refreshScanUI(); setFrameState('scanning');
+      toast('Front captured','success');
     } else {
-      scan.back = imgData;
-      scan.step = 2;
-      refreshScanUI(); // disables shutter, step dots advance
-      setFrameState('processing');
+      scan.back = imgData; scan.step = 2;
+      refreshScanUI(); setFrameState('processing');
       runAI();
     }
   });
 }
 
-function doFlash(cb) {
-  flashEl.style.opacity = '0.65';
-  setTimeout(() => {
-    flashEl.style.opacity = '0';
-    setTimeout(cb, 250);
-  }, 60);
+function skipBack() {
+  if (scan.step !== 1) return;
+  scan.back = null; scan.step = 2;
+  refreshScanUI(); setFrameState('processing');
+  runAI();
 }
 
-// ================================================================
-// AI PROCESSING
-// ================================================================
+function doFlash(cb) {
+  flashEl.style.opacity = '0.65';
+  setTimeout(() => { flashEl.style.opacity = '0'; setTimeout(cb, 250); }, 60);
+}
+
+// AI PROCESSING - CARD/ID
 async function runAI() {
   setFrameState('processing');
   procOverlay.classList.add('show');
   shutterBtn.disabled = true;
-  shutterBtn.style.opacity = '0.4';
 
   const key = localStorage.getItem('iris_key');
-
-  const systemPrompt = `You are a precise OCR and document analysis engine. I am showing you BOTH the front and back of a card or identity document.
-Return ONLY a raw JSON object. Use null for any missing field.
+  const systemPrompt = `You are a precise OCR and document analysis engine. I am showing you a card or identity document (front${scan.back ? ' and back' : ' only'}).
+Return ONLY a raw JSON object. Use null for any missing field. EXTRACT THE FULL VISIBLE CARD/ID NUMBER as it appears - do not mask it.
 
 JSON schema:
 {
-  "type": "<category: Credit Card | Debit Card | Aadhaar Card | PAN Card | Voter ID | Driving License | Passport | Other>",
+  "type": "<one of: Credit Card | Debit Card | Forex Card | Aadhaar Card | PAN Card | Voter ID | Driving License | Passport | E-Visa | Other>",
   "product": "<specific product name e.g. HDFC Regalia Credit Card. If unknown, same as type>",
   "bank": "<bank or issuing authority>",
-  "number": "<primary ID or card number>",
+  "number": "<full primary ID/card number, exactly as visible, no masking>",
   "name": "<full name on card>",
   "dob": "<date of birth>",
-  "expiry": "<expiry date>",
+  "expiry": "<expiry/valid until date>",
   "cvv": "<CVV/CVC from back if visible, else null>",
   "address": "<address from back if visible, else null>",
-  "back_info": "<any other notable back info: blood group, emergency contact, back document number, etc. Combine into one string.>",
-  "barcode_ref": "<reference/barcode/QR number from back if any>"
+  "back_info": "<any other notable info: blood group, emergency contact, nationality, sex, place of birth, etc.>",
+  "barcode_ref": "<reference/barcode/QR number if any>"
 }`;
 
+  const parts = [
+    { text: systemPrompt },
+    { text: '— FRONT —' },
+    { inline_data: { mime_type: 'image/jpeg', data: scan.front.split(',')[1] } },
+  ];
+  if (scan.back) {
+    parts.push({ text: '— BACK —' });
+    parts.push({ inline_data: { mime_type: 'image/jpeg', data: scan.back.split(',')[1] } });
+  }
+
   const body = {
-    contents: [{
-      parts: [
-        { text: systemPrompt },
-        { text: '— FRONT of card/document —' },
-        { inline_data: { mime_type: 'image/jpeg', data: scan.front.split(',')[1] } },
-        { text: '— BACK of card/document —' },
-        { inline_data: { mime_type: 'image/jpeg', data: scan.back.split(',')[1] } },
-      ]
-    }],
-    generationConfig: {
-      temperature: 0.05,
-      maxOutputTokens: 800,
-      responseMimeType: "application/json" // Forces strict JSON output at the API level
-    }
+    contents: [{ parts }],
+    generationConfig: { temperature: 0.05, maxOutputTokens: 800, responseMimeType: "application/json" }
   };
 
   let retries = 3;
   let data = null;
-
   try {
-    // Retry loop for High Demand (503) errors
     while (retries > 0) {
       const res = await fetch(`${GEMINI_ENDPOINT}?key=${key}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
-
       if (res.status === 503) {
         retries--;
         if (retries === 0) throw new Error("High demand. Please try again later.");
-        
-        // Update UI to show the user we are automatically retrying
         const subText = procOverlay.querySelector('.proc-sub');
         if (subText) subText.textContent = `High demand, retrying... (${3 - retries})`;
-        
-        await new Promise(r => setTimeout(r, 2000)); // Wait 2 seconds before retrying
-        continue;
+        await new Promise(r => setTimeout(r, 2000)); continue;
       }
-
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err?.error?.message || `HTTP ${res.status}`);
       }
-
-      data = await res.json();
-      break; // Success, exit retry loop
+      data = await res.json(); break;
     }
-
-    // Check if the API blocked the scan due to sensitive info filters
-    if (data?.candidates?.[0]?.finishReason === 'SAFETY') {
-        throw new Error('AI blocked the scan due to sensitive info filters.');
-    }
-
+    if (data?.candidates?.[0]?.finishReason === 'SAFETY')
+      throw new Error('AI blocked the scan due to sensitive info filters.');
     const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!rawText) throw new Error('Empty AI response');
-
-    // Because we used responseMimeType, we can safely JSON.parse directly
-    // without needing complex Regex to strip markdown
     const p = JSON.parse(rawText);
-
     const card = {
-      id:          Date.now(),
-      type:        p.type        || 'Card',
-      product:     p.product     || p.type || 'Card',
-      bank:        p.bank        || null,
-      number:      p.number      || null,
-      name:        p.name        || null,
-      dob:         p.dob         || null,
-      expiry:      p.expiry      || null,
-      cvv:         p.cvv         || null,
-      address:     p.address     || null,
-      back_info:   p.back_info   || null,
+      id: Date.now(),
+      kind: 'card',
+      type: p.type || 'Card',
+      product: p.product || p.type || 'Card',
+      bank: p.bank || null,
+      number: p.number || null,
+      name: p.name || null,
+      dob: p.dob || null,
+      expiry: p.expiry || null,
+      cvv: p.cvv || null,
+      address: p.address || null,
+      back_info: p.back_info || null,
       barcode_ref: p.barcode_ref || null,
-      frontImg:    scan.front,
-      backImg:     scan.back,
-      savedAt:     new Date().toISOString()
+      frontImg: scan.front,
+      backImg: scan.back,
+      savedAt: new Date().toISOString()
     };
-
     await txAdd(card);
     closeScanner();
     await renderWallet();
-    toast('Card secured successfully', 'success');
-
+    toast('Card secured successfully','success');
   } catch (err) {
     console.error('[Iris] AI error:', err);
-    // Reset fully so user can retry from front
     scan = { step: 0, front: null, back: null };
     setFrameState('scanning');
     procOverlay.classList.remove('show');
-    
-    // Reset the processing text back to default in case it changed during retries
     const subText = procOverlay.querySelector('.proc-sub');
     if (subText) subText.textContent = 'Extracting all card details';
-    
-    refreshScanUI(); 
-    toast('Error: ' + String(err.message).slice(0, 55), 'error');
+    refreshScanUI();
+    toast('Error: ' + String(err.message).slice(0,55), 'error');
   }
 }
 
+// ============================================
+// TICKET UPLOAD (PDF)
+// ============================================
+function openTicketUpload() {
+  closeAddSheet();
+  if (!localStorage.getItem('iris_key')) {
+    toast('Set your Gemini API key first', 'error');
+    setTimeout(promptApiKey, 800);
+    return;
+  }
+  $('ticketFile').click();
+}
 
-   
-// ================================================================
-// RENDER WALLET
-// ================================================================
+async function handleTicketUpload(event) {
+  const file = event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+
+  toast('Reading ticket...', 'info');
+
+  try {
+    let extractedText = '';
+    let firstPageImage = null;
+
+    if (file.type === 'application/pdf') {
+      // Extract text from PDF
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const numPages = Math.min(pdf.numPages, 3);
+      for (let i = 1; i <= numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        extractedText += textContent.items.map(it => it.str).join(' ') + '\n';
+      }
+      // Render first page to image for AI
+      const page = await pdf.getPage(1);
+      const viewport = page.getViewport({ scale: 1.5 });
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width; canvas.height = viewport.height;
+      const ctx = canvas.getContext('2d');
+      await page.render({ canvasContext: ctx, viewport }).promise;
+      firstPageImage = canvas.toDataURL('image/jpeg', 0.85);
+    } else if (file.type.startsWith('image/')) {
+      firstPageImage = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result); r.onerror = rej;
+        r.readAsDataURL(file);
+      });
+    } else {
+      toast('Unsupported file type', 'error');
+      return;
+    }
+
+    await processTicketAI(extractedText, firstPageImage);
+  } catch (err) {
+    console.error(err);
+    toast('Ticket upload failed: ' + err.message.slice(0,50), 'error');
+  }
+}
+
+async function processTicketAI(extractedText, imageData) {
+  // Show processing overlay
+  scannerEl.classList.add('open');
+  setFrameState('processing');
+  procOverlay.classList.add('show');
+  procOverlay.querySelector('.proc-text').textContent = 'Iris AI Reading Ticket…';
+  procOverlay.querySelector('.proc-sub').textContent = 'Creating digital pass';
+  shutterBtn.disabled = true;
+  shutterBtn.style.opacity = '0.3';
+
+  const key = localStorage.getItem('iris_key');
+  const systemPrompt = `You are a ticket/pass parser. I am providing you a ticket document (flight, train, movie, e-visa, event, etc.).
+Return ONLY a raw JSON object with the structure below. Use null for missing fields.
+
+JSON schema:
+{
+  "type": "<one of: Flight Ticket | Train Ticket | Movie Ticket | E-Visa | Event Ticket | Bus Ticket | Other Pass>",
+  "product": "<airline/operator/cinema name e.g. IndiGo, IRCTC, PVR>",
+  "passenger": "<passenger/holder name>",
+  "pnr": "<PNR / booking reference / confirmation code>",
+  "from_code": "<departure airport/station code e.g. BLR. For movie/event use venue code or null>",
+  "from_city": "<departure city/full name. For movie/event the venue name>",
+  "to_code": "<arrival airport/station code. For movie/event the screen/hall>",
+  "to_city": "<arrival city/full name. For movie/event the movie/event name>",
+  "depart_date": "<departure date e.g. 12 Jun 2024>",
+  "depart_time": "<departure time e.g. 14:30>",
+  "arrive_date": "<arrival date>",
+  "arrive_time": "<arrival time>",
+  "seat": "<seat number(s)>",
+  "class_or_category": "<class/coach/category e.g. Economy, 3AC, Gold>",
+  "gate_or_terminal": "<gate / terminal / hall info>",
+  "extra_info": "<any other key info: visa expiry, flight number, train number, screen, etc.>"
+}`;
+
+  const parts = [{ text: systemPrompt }];
+  if (extractedText) parts.push({ text: '— EXTRACTED TEXT —\n' + extractedText.slice(0, 8000) });
+  if (imageData) {
+    parts.push({ text: '— DOCUMENT IMAGE —' });
+    parts.push({ inline_data: { mime_type: 'image/jpeg', data: imageData.split(',')[1] } });
+  }
+
+  const body = {
+    contents: [{ parts }],
+    generationConfig: { temperature: 0.05, maxOutputTokens: 1000, responseMimeType: "application/json" }
+  };
+
+  try {
+    const res = await fetch(`${GEMINI_ENDPOINT}?key=${key}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err?.error?.message || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!rawText) throw new Error('Empty AI response');
+    const p = JSON.parse(rawText);
+
+    const ticket = {
+      id: Date.now(),
+      kind: 'ticket',
+      type: p.type || 'Ticket',
+      product: p.product || p.type || 'Ticket',
+      passenger: p.passenger || null,
+      pnr: p.pnr || null,
+      from_code: p.from_code || null,
+      from_city: p.from_city || null,
+      to_code: p.to_code || null,
+      to_city: p.to_city || null,
+      depart_date: p.depart_date || null,
+      depart_time: p.depart_time || null,
+      arrive_date: p.arrive_date || null,
+      arrive_time: p.arrive_time || null,
+      seat: p.seat || null,
+      class_or_category: p.class_or_category || null,
+      gate_or_terminal: p.gate_or_terminal || null,
+      extra_info: p.extra_info || null,
+      savedAt: new Date().toISOString()
+    };
+
+    await txAdd(ticket);
+    closeScanner();
+    procOverlay.querySelector('.proc-text').textContent = 'Iris AI Scanning…';
+    procOverlay.querySelector('.proc-sub').textContent = 'Extracting all card details';
+    await renderWallet();
+    toast('Pass added to wallet','success');
+  } catch (err) {
+    closeScanner();
+    procOverlay.querySelector('.proc-text').textContent = 'Iris AI Scanning…';
+    procOverlay.querySelector('.proc-sub').textContent = 'Extracting all card details';
+    toast('Error: ' + String(err.message).slice(0,55), 'error');
+  }
+}
+
+// ============================================
+// RENDER
+// ============================================
 async function renderWallet() {
-  const all = (await txAll()).sort((a, b) => b.id - a.id);
+  const all = (await txAll()).sort((a,b) => b.id - a.id);
   const n = all.length;
-
-  statsCount.innerHTML = `${n}<em>${n === 1 ? 'card' : 'cards'}</em>`;
-  sectionLabel.style.display = n > 0 ? 'block' : 'none';
-  cardsWrap.innerHTML = '';
+  countBadge.textContent = n;
+  walletStack.innerHTML = '';
 
   if (n === 0) {
-    cardsWrap.innerHTML = `
+    walletStack.classList.remove('expanded-mode');
+    walletStack.innerHTML = `
       <div class="empty">
         <div class="empty-icon">
           <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -1223,74 +1143,109 @@ async function renderWallet() {
           </svg>
         </div>
         <div class="empty-title">No cards yet</div>
-        <div class="empty-sub">Tap <strong>+</strong> to scan and secure your first card or ID document</div>
+        <div class="empty-sub">Tap <strong>+</strong> to scan a card or upload a ticket PDF</div>
       </div>`;
     return;
   }
 
+  // If many cards, switch to spread mode automatically when one is selected
+  if (selectedId) walletStack.classList.add('expanded-mode');
+  else walletStack.classList.remove('expanded-mode');
+
   all.forEach((card, idx) => {
     const el = buildCard(card);
     el.style.animationDelay = `${idx * 55}ms`;
-    cardsWrap.appendChild(el);
+    el.style.zIndex = (n - idx);
+    walletStack.appendChild(el);
   });
 }
 
-// ================================================================
+// ============================================
 // CARD BUILDER
-// ================================================================
-function getTheme(type) {
-  const t = String(type || '').toLowerCase();
+// ============================================
+function getTheme(item) {
+  const t = String(item.type || '').toLowerCase();
+  if (item.kind === 'ticket') {
+    if (t.includes('flight')) return 'flight';
+    if (t.includes('train') || t.includes('bus')) return 'train';
+    if (t.includes('movie') || t.includes('event')) return 'movie';
+    if (t.includes('visa')) return 'evisa';
+    return 'flight';
+  }
   if (t.includes('credit') || t.includes('debit')) return 'credit';
-  if (t.includes('aadhaar') || t.includes('aadhar'))  return 'aadhaar';
-  if (t.includes('pan'))                              return 'pan';
-  if (t.includes('voter'))                            return 'voter';
-  if (t.includes('driv') || t.includes('license') || t.includes('licence')) return 'driving';
+  if (t.includes('forex')) return 'forex';
+  if (t.includes('aadhaar') || t.includes('aadhar')) return 'aadhaar';
+  if (t.includes('pan')) return 'pan';
+  if (t.includes('voter') || t.includes('election')) return 'voter';
+  if (t.includes('driv') || t.includes('licen')) return 'driving';
+  if (t.includes('passport')) return 'passport';
+  if (t.includes('visa')) return 'evisa';
   return 'generic';
 }
 
-function isCard(type) {
+function isFinancialCard(type) {
   const t = String(type || '').toLowerCase();
-  return t.includes('credit') || t.includes('debit');
+  return t.includes('credit') || t.includes('debit') || t.includes('forex');
 }
 
-function buildCard(card) {
-  const theme = getTheme(card.type);
-  const isPan  = theme === 'pan';
-  const isCreditDebit = isCard(card.type);
+function copyButton(val, label) {
+  if (!val) return '';
+  const safe = String(val).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  return `<button class="cp-btn" data-copy="${escAttr(val)}" title="Copy ${label}" aria-label="Copy ${label}">
+    <svg viewBox="0 0 24 24"><path d="M16 1H4C2.9 1 2 1.9 2 3v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+  </button>`;
+}
 
-  // Number formatting
-  const rawNum = String(card.number || '').replace(/\s/g, '');
-  let numDisplay = '— — — —';
-  if (rawNum.length > 0) {
-    if (rawNum.length >= 12) {
-      // show ••• ••• ••• XXXX
-      numDisplay = `<span class="cf-num-masked">•••• •••• ••••</span> ${escH(rawNum.slice(-4))}`;
-    } else {
-      numDisplay = escH(card.number);
-    }
+function buildCard(item) {
+  const el = document.createElement('div');
+  el.className = 'stack-card';
+  el.dataset.id = item.id;
+
+  if (item.kind === 'ticket') {
+    el.innerHTML = buildTicketHTML(item);
+  } else {
+    el.innerHTML = buildIdCardHTML(item);
   }
 
-  const fullNum = card.number || '';
-  const cpBtn = (val, label) => val
-    ? `<button class="cp-btn" onclick="copyVal(${JSON.stringify(String(val))},event)" title="Copy ${label}">
-        <svg viewBox="0 0 24 24"><path d="M16 1H4C2.9 1 2 1.9 2 3v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
-       </button>` : '';
+  // Single-tap = select/expand. Double-tap = flip.
+  el.addEventListener('click', e => {
+    // If clicked element is a copy button, do not propagate to flip/select
+    const copyBtn = e.target.closest('.cp-btn');
+    if (copyBtn) {
+      e.stopPropagation();
+      const val = copyBtn.dataset.copy;
+      copyVal(val);
+      return;
+    }
+    // Action buttons
+    if (e.target.closest('.act-btn')) return;
 
-  // Chip SVG (gold)
-  const chipSVG = isCreditDebit ? `
+    handleCardTap(item.id);
+  });
+
+  return el;
+}
+
+function buildIdCardHTML(card) {
+  const theme = getTheme(card);
+  const isFin = isFinancialCard(card.type);
+  const isPan = theme === 'pan';
+
+  // SHOW FULL NUMBER (issue #3)
+  const fullNum = card.number || '';
+  const numDisplay = fullNum ? formatCardNumber(fullNum, isFin) : '— — — —';
+
+  const chipSVG = isFin ? `
     <div class="chip-wrap">
       <svg width="36" height="26" viewBox="0 0 36 26">
         <rect width="36" height="26" rx="4" fill="${isPan ? '#C49A22' : '#C5A028'}"/>
         <rect x="0.5" y="7.5" width="35" height="11" fill="${isPan ? '#D4B035' : '#D4B240'}"/>
         <rect x="11.5" y="0.5" width="13" height="25" fill="${isPan ? '#D4B035' : '#D4B240'}"/>
         <rect x="12.5" y="8.5" width="11" height="9" rx="1.5" fill="${isPan ? '#9A7B10' : '#A08010'}"/>
-        <line x1="18" y1="0.5" x2="18" y2="25.5" stroke="${isPan ? '#C49A22' : '#C5A028'}" stroke-width="0.5"/>
-        <line x1="0.5" y1="13" x2="35.5" y2="13" stroke="${isPan ? '#C49A22' : '#C5A028'}" stroke-width="0.5"/>
       </svg>
     </div>` : '';
 
-  // Contactless symbol
-  const contactlessSVG = isCreditDebit ? `
+  const contactlessSVG = isFin ? `
     <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
       <path d="M5 16.5a9 9 0 0 1 0-11" stroke="${isPan ? '#2D1A04' : 'white'}" stroke-width="1.6" stroke-linecap="round" opacity=".6"/>
       <path d="M8 13.5a5 5 0 0 1 0-5" stroke="${isPan ? '#2D1A04' : 'white'}" stroke-width="1.6" stroke-linecap="round" opacity=".75"/>
@@ -1299,15 +1254,13 @@ function buildCard(card) {
       <path d="M17 16.5a9 9 0 0 0 0-11" stroke="${isPan ? '#2D1A04' : 'white'}" stroke-width="1.6" stroke-linecap="round" opacity=".6"/>
     </svg>` : `<span style="font-size:18px;opacity:0.12">✦</span>`;
 
-  // Theme decoration layers
   const themeDecos = {
-    credit:  `<div class="holo-layer"></div><div class="grid-layer"></div><div class="glow-layer"></div><div class="glow-layer2"></div>`,
-    aadhaar: `<div class="deco-circle"></div><div class="deco-lines"></div>`,
-    voter:   `<div class="deco-stars"></div>`,
-    pan: '', driving: '', generic: '',
+    credit: `<div class="holo-layer"></div><div class="grid-layer"></div>`,
+    forex:  `<div class="holo-layer"></div><div class="grid-layer"></div>`,
+    aadhaar: `<div class="deco-circle"></div>`,
+    voter: '', pan: '', driving: '', generic: '', passport: '', evisa: ''
   }[theme] || '';
 
-  // Front HTML
   const frontHTML = `
     <div class="theme-${theme} card-face front">
       ${themeDecos}
@@ -1319,66 +1272,57 @@ function buildCard(card) {
           </div>
           ${contactlessSVG}
         </div>
-        <div class="cf-mid">
+        <div>
           ${chipSVG}
           <div class="cf-num">
-            <span>${numDisplay}</span>
-            ${fullNum ? cpBtn(fullNum, 'number') : ''}
+            <span class="cf-num-text">${escH(numDisplay)}</span>
+            ${copyButton(fullNum, 'number')}
           </div>
         </div>
         <div class="cf-bot">
           <div class="cf-field">
             <div class="cf-flabel">${card.name ? 'Card Holder' : (card.dob ? 'Date of Birth' : '&nbsp;')}</div>
             <div class="cf-fval">
-              ${escH(card.name || card.dob || '—')}
-              ${card.name ? cpBtn(card.name, 'name') : ''}
+              <span>${escH(card.name || card.dob || '—')}</span>
+              ${copyButton(card.name, 'name')}
             </div>
           </div>
-          <div class="cf-field" style="text-align:right">
+          <div class="cf-field" style="text-align:right;flex:0 0 auto">
             <div class="cf-flabel">${card.expiry ? 'Expires' : (card.dob && card.name ? 'DOB' : '&nbsp;')}</div>
-            <div class="cf-fval">${escH(card.expiry || (card.name && card.dob ? card.dob : '') || '')}</div>
+            <div class="cf-fval" style="justify-content:flex-end">${escH(card.expiry || (card.name && card.dob ? card.dob : '') || '')}</div>
           </div>
         </div>
       </div>
       ${(theme === 'pan' || theme === 'aadhaar') ? '<div class="tricolor"></div>' : ''}
     </div>`;
 
-  // Back HTML
   const backHTML = buildBack(card, theme);
-
-  // Action bar
   const flipSVG = `<svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>`;
-  const delSVG  = `<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6m4-6v6"/><path d="M9 6V4h6v2"/></svg>`;
+  const delSVG = `<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6m4-6v6"/><path d="M9 6V4h6v2"/></svg>`;
 
-  const el = document.createElement('div');
-  el.className = 'card-item';
-  el.dataset.id = card.id;
-  el.innerHTML = `
-    <div class="card-scene" id="scene-${card.id}">
+  return `
+    <div class="card-scene">
       <div class="card-flipper" id="flip-${card.id}">
         ${frontHTML}
         <div class="card-face back">${backHTML}</div>
       </div>
+      <div class="flip-hint"><span class="fh-active"></span><span></span></div>
     </div>
-    <div class="card-actions" id="act-${card.id}">
+    <div class="card-actions">
       <button class="act-btn" onclick="flipCard(${card.id},event)">${flipSVG} Flip</button>
       <button class="act-btn danger" onclick="deleteCard(${card.id},event)">${delSVG} Delete</button>
     </div>`;
-
-  // Inject flip hint dots inside scene
-  const scene = el.querySelector('.card-scene');
-  const hint = document.createElement('div');
-  hint.className = 'flip-hint';
-  hint.innerHTML = `<span class="fh-active"></span><span></span>`;
-  scene.appendChild(hint);
-
-  el.querySelector('.card-scene').addEventListener('click', () => toggleExpand(card.id));
-  return el;
 }
 
-// ================================================================
-// CARD BACK BUILDER
-// ================================================================
+function formatCardNumber(num, isFinancial) {
+  const clean = String(num).replace(/\s/g, '');
+  if (isFinancial && clean.length >= 12) {
+    // Group in 4s
+    return clean.replace(/(.{4})/g, '$1 ').trim();
+  }
+  return num;
+}
+
 function barcodeLines(n, dark) {
   const pat = [100,68,85,55,92,72,100,60,80,95,65,100,70,85,58,90,75,100,52,80];
   return Array.from({length:n}, (_,i) => {
@@ -1389,9 +1333,9 @@ function barcodeLines(n, dark) {
 }
 
 function buildBack(card, theme) {
-  const isCreditDebit = isCard(card.type);
+  const isFin = isFinancialCard(card.type);
 
-  if (isCreditDebit) {
+  if (isFin) {
     return `<div class="cb cb-credit">
       <div class="cb-magstripe"></div>
       <div class="cb-body">
@@ -1402,12 +1346,10 @@ function buildBack(card, theme) {
           </div>
           ${card.cvv ? `<div>
             <div class="cb-cvv-label">CVV</div>
-            <div class="cb-cvv-box">${escH(card.cvv)}</div>
+            <div class="cb-cvv-box">${escH(card.cvv)} ${copyButton(card.cvv, 'CVV')}</div>
           </div>` : ''}
         </div>
-        ${card.back_info ? `<div class="cb-inforow" style="margin-top:10px">
-          <div class="cb-infoitem"><div class="cb-infol">Additional Info</div><div class="cb-infov">${escH(card.back_info)}</div></div>
-        </div>` : ''}
+        ${card.back_info ? `<div style="margin-top:10px"><div class="cb-id-label">Additional Info</div><div class="cb-id-val">${escH(card.back_info)}</div></div>` : ''}
         <div class="cb-foot" style="margin-top:auto;padding-top:8px">
           <div class="cb-bankname">${escH(card.bank || card.product || '')}</div>
           <div class="cb-barcode">${barcodeLines(20, false)}</div>
@@ -1420,9 +1362,21 @@ function buildBack(card, theme) {
     return `<div class="cb" style="background:linear-gradient(148deg,#003087 0%,#0050B3 100%)">
       <div class="cb-id">
         <div class="cb-id-header">Government of India — UIDAI</div>
-        ${card.address ? `<div class="cb-id-field"><div class="cb-id-label">Registered Address</div><div class="cb-id-val">${escH(card.address)}</div></div>` : ''}
-        ${card.back_info ? `<div class="cb-id-field"><div class="cb-id-label">Details</div><div class="cb-id-val">${escH(card.back_info)}</div></div>` : ''}
-        ${card.barcode_ref ? `<div class="cb-id-field"><div class="cb-id-label">Reference</div><div class="cb-id-val" style="font-family:'SF Mono',monospace;font-size:10px;letter-spacing:1px">${escH(card.barcode_ref)}</div></div>` : ''}
+        ${card.address ? `<div class="cb-id-field">
+          <div class="cb-id-field-content">
+            <div class="cb-id-label">Registered Address</div>
+            <div class="cb-id-val">${escH(card.address)}</div>
+          </div>
+          ${copyButton(card.address, 'address')}
+        </div>` : ''}
+        ${card.back_info ? `<div class="cb-id-field"><div class="cb-id-field-content"><div class="cb-id-label">Details</div><div class="cb-id-val">${escH(card.back_info)}</div></div></div>` : ''}
+        ${card.barcode_ref ? `<div class="cb-id-field">
+          <div class="cb-id-field-content">
+            <div class="cb-id-label">Reference</div>
+            <div class="cb-id-val" style="font-family:'SF Mono',monospace;font-size:10px;letter-spacing:1px">${escH(card.barcode_ref)}</div>
+          </div>
+          ${copyButton(card.barcode_ref, 'reference')}
+        </div>` : ''}
         <div style="display:flex;justify-content:flex-end;margin-top:auto">
           <div class="cb-qr-placeholder">
             <svg width="26" height="26" viewBox="0 0 24 24" fill="white">
@@ -1438,8 +1392,8 @@ function buildBack(card, theme) {
   if (theme === 'pan') {
     return `<div class="cb-pan">
       <div class="cb-id-header">Income Tax Department — Govt of India</div>
-      ${card.address ? `<div class="cb-id-field"><div class="cb-id-label">Address</div><div class="cb-id-val">${escH(card.address)}</div></div>` : ''}
-      ${card.back_info ? `<div class="cb-id-field"><div class="cb-id-label">Details</div><div class="cb-id-val">${escH(card.back_info)}</div></div>` : ''}
+      ${card.address ? `<div class="cb-id-field"><div class="cb-id-field-content"><div class="cb-id-label">Address</div><div class="cb-id-val">${escH(card.address)}</div></div>${copyButton(card.address, 'address')}</div>` : ''}
+      ${card.back_info ? `<div class="cb-id-field"><div class="cb-id-field-content"><div class="cb-id-label">Details</div><div class="cb-id-val">${escH(card.back_info)}</div></div></div>` : ''}
       <div style="display:flex;justify-content:flex-end;margin-top:auto">
         <div class="cb-pan-barcode">${barcodeLines(18, true)}</div>
       </div>
@@ -1447,18 +1401,19 @@ function buildBack(card, theme) {
     </div>`;
   }
 
-  // Generic / Voter / Driving
   const bgs = {
-    voter:   'linear-gradient(148deg,#14012B 0%,#2D1275 100%)',
+    voter: 'linear-gradient(148deg,#14012B 0%,#2D1275 100%)',
     driving: 'linear-gradient(148deg,#0A2416 0%,#134A2C 100%)',
+    passport: 'linear-gradient(148deg,#1F1B0E 0%,#3D2F0F 100%)',
+    evisa: 'linear-gradient(148deg,#15302E 0%,#1F5A50 100%)',
     generic: 'linear-gradient(148deg,#0D0D1E 0%,#1A1535 100%)',
   };
   const bg = bgs[theme] || bgs.generic;
   return `<div class="cb" style="background:${bg}">
     <div class="cb-id">
-      ${card.back_info ? `<div class="cb-id-field"><div class="cb-id-label">Details</div><div class="cb-id-val">${escH(card.back_info)}</div></div>` : ''}
-      ${card.address ? `<div class="cb-id-field"><div class="cb-id-label">Address</div><div class="cb-id-val">${escH(card.address)}</div></div>` : ''}
-      ${card.barcode_ref ? `<div class="cb-id-field"><div class="cb-id-label">Reference</div><div class="cb-id-val" style="font-family:'SF Mono',monospace;font-size:10px;letter-spacing:1px">${escH(card.barcode_ref)}</div></div>` : ''}
+      ${card.back_info ? `<div class="cb-id-field"><div class="cb-id-field-content"><div class="cb-id-label">Details</div><div class="cb-id-val">${escH(card.back_info)}</div></div></div>` : ''}
+      ${card.address ? `<div class="cb-id-field"><div class="cb-id-field-content"><div class="cb-id-label">Address</div><div class="cb-id-val">${escH(card.address)}</div></div>${copyButton(card.address, 'address')}</div>` : ''}
+      ${card.barcode_ref ? `<div class="cb-id-field"><div class="cb-id-field-content"><div class="cb-id-label">Reference</div><div class="cb-id-val" style="font-family:'SF Mono',monospace;font-size:10px;letter-spacing:1px">${escH(card.barcode_ref)}</div></div>${copyButton(card.barcode_ref,'ref')}</div>` : ''}
       <div style="display:flex;justify-content:flex-end;margin-top:auto">
         <div class="cb-barcode">${barcodeLines(18, false)}</div>
       </div>
@@ -1466,74 +1421,177 @@ function buildBack(card, theme) {
   </div>`;
 }
 
-// ================================================================
-// CARD INTERACTIONS
-// ================================================================
-function toggleExpand(id) {
-  const el = document.querySelector(`.card-item[data-id="${id}"]`);
+// TICKET / PASS HTML
+function buildTicketHTML(t) {
+  const theme = getTheme(t);
+  const arrowSVG = `<svg class="tk-arrow" width="22" height="14" viewBox="0 0 22 14" fill="none">
+    <path d="M1 7h18m0 0L13 1m6 6l-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity=".5"/>
+  </svg>`;
+
+  const isMovie = theme === 'movie';
+  const isVisa  = theme === 'evisa';
+
+  const frontHTML = `
+    <div class="theme-${theme} card-face front">
+      <div class="cf-ticket">
+        <div class="tk-top">
+          <div>
+            <div class="cf-issuer">${escH(t.product || t.type || 'Pass')}</div>
+            <div class="cf-product">${escH(t.type || 'Ticket')}</div>
+          </div>
+          ${t.pnr ? `<div style="text-align:right">
+            <div class="cf-flabel">${isMovie ? 'BOOKING' : 'PNR'}</div>
+            <div style="font-family:'SF Mono',monospace;font-size:13px;font-weight:700;letter-spacing:1px;display:flex;align-items:center;gap:6px;justify-content:flex-end">
+              <span>${escH(t.pnr)}</span>
+              ${copyButton(t.pnr, 'PNR')}
+            </div>
+          </div>` : ''}
+        </div>
+        <div class="tk-route">
+          <div class="tk-loc">
+            <div class="tk-code">${escH(t.from_code || (isMovie ? 'SCREEN' : '—'))}</div>
+            <div class="tk-city">${escH(t.from_city || '')}</div>
+          </div>
+          ${arrowSVG}
+          <div class="tk-loc" style="text-align:right">
+            <div class="tk-code">${escH(t.to_code || (isMovie ? 'SEAT' : '—'))}</div>
+            <div class="tk-city">${escH(t.to_city || '')}</div>
+          </div>
+        </div>
+        <div class="tk-bot">
+          <div class="tk-field">
+            <div class="tk-flabel">${isMovie ? 'Date' : 'Departure'}</div>
+            <div class="tk-fval">${escH(t.depart_date || '')}${t.depart_time ? ' · ' + escH(t.depart_time) : ''}</div>
+          </div>
+          <div class="tk-field" style="text-align:right">
+            <div class="tk-flabel">Seat</div>
+            <div class="tk-fval">${escH(t.seat || '—')}</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  // Back
+  const backHTML = `<div class="cb" style="background:linear-gradient(148deg,#1a1a2a 0%,#0a0a18 100%)">
+    <div class="cb-id">
+      <div class="cb-id-header">${escH(t.product || t.type || 'Pass')}</div>
+      ${t.passenger ? `<div class="cb-id-field"><div class="cb-id-field-content"><div class="cb-id-label">Passenger</div><div class="cb-id-val">${escH(t.passenger)}</div></div>${copyButton(t.passenger, 'name')}</div>` : ''}
+      ${t.class_or_category ? `<div class="cb-id-field"><div class="cb-id-field-content"><div class="cb-id-label">Class</div><div class="cb-id-val">${escH(t.class_or_category)}</div></div></div>` : ''}
+      ${t.gate_or_terminal ? `<div class="cb-id-field"><div class="cb-id-field-content"><div class="cb-id-label">${isMovie ? 'Hall' : 'Gate / Terminal'}</div><div class="cb-id-val">${escH(t.gate_or_terminal)}</div></div></div>` : ''}
+      ${t.arrive_date ? `<div class="cb-id-field"><div class="cb-id-field-content"><div class="cb-id-label">Arrival</div><div class="cb-id-val">${escH(t.arrive_date)}${t.arrive_time ? ' · ' + escH(t.arrive_time) : ''}</div></div></div>` : ''}
+      ${t.extra_info ? `<div class="cb-id-field"><div class="cb-id-field-content"><div class="cb-id-label">Info</div><div class="cb-id-val">${escH(t.extra_info)}</div></div></div>` : ''}
+      <div style="display:flex;justify-content:flex-end;margin-top:auto">
+        <div class="cb-barcode">${barcodeLines(22, false)}</div>
+      </div>
+    </div>
+  </div>`;
+
+  const flipSVG = `<svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>`;
+  const delSVG = `<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6m4-6v6"/><path d="M9 6V4h6v2"/></svg>`;
+
+  return `
+    <div class="card-scene">
+      <div class="card-flipper" id="flip-${t.id}">
+        ${frontHTML}
+        <div class="card-face back">${backHTML}</div>
+      </div>
+      <div class="flip-hint"><span class="fh-active"></span><span></span></div>
+    </div>
+    <div class="card-actions">
+      <button class="act-btn" onclick="flipCard(${t.id},event)">${flipSVG} Flip</button>
+      <button class="act-btn danger" onclick="deleteCard(${t.id},event)">${delSVG} Delete</button>
+    </div>`;
+}
+
+// ============================================
+// CARD INTERACTIONS - DOUBLE-TAP TO FLIP
+// ============================================
+function handleCardTap(id) {
+  const now = Date.now();
+  const isDoubleTap = (lastTapId === id) && (now - lastTapTime < 320);
+  lastTapTime = now;
+  lastTapId = id;
+
+  const el = document.querySelector(`.stack-card[data-id="${id}"]`);
   if (!el) return;
 
-  if (expandedId === id) {
-    // Second tap → flip the card
-    const flipped = el.dataset.flipped === '1';
-    const flipper = $('flip-' + id);
-    const newFlipped = !flipped;
-    el.dataset.flipped = newFlipped ? '1' : '0';
-    flipper.style.transform = newFlipped ? 'rotateY(180deg)' : '';
-    // Update hint dots
-    const dots = el.querySelectorAll('.flip-hint span');
-    if (dots.length === 2) {
-      dots[0].classList.toggle('fh-active', !newFlipped);
-      dots[1].classList.toggle('fh-active', newFlipped);
-    }
+  if (isDoubleTap) {
+    // FLIP
+    flipCard(id);
     return;
   }
 
-  // Collapse any open card first
-  if (expandedId) {
-    const prev = document.querySelector(`.card-item[data-id="${expandedId}"]`);
+  // SINGLE TAP — select / deselect
+  if (selectedId === id) {
+    // Tap again → deselect (collapse)
+    deselectCard();
+    return;
+  }
+
+  // Deselect any previous
+  if (selectedId) {
+    const prev = document.querySelector(`.stack-card[data-id="${selectedId}"]`);
     if (prev) {
-      prev.classList.remove('expanded');
-      prev.dataset.flipped = '0';
-      const pf = $('flip-' + expandedId);
+      prev.classList.remove('selected', 'flipped');
+      const pf = prev.querySelector('.card-flipper');
       if (pf) pf.style.transform = '';
-      // Reset prev dots
-      const pd = prev.querySelectorAll('.flip-hint span');
-      if (pd.length === 2) { pd[0].classList.add('fh-active'); pd[1].classList.remove('fh-active'); }
     }
   }
 
-  el.classList.add('expanded');
-  el.dataset.flipped = '0';
-  // Reset this card dots to front
-  const dots = el.querySelectorAll('.flip-hint span');
-  if (dots.length === 2) { dots[0].classList.add('fh-active'); dots[1].classList.remove('fh-active'); }
-  expandedId = id;
+  el.classList.add('selected');
+  selectedId = id;
+  walletStack.classList.add('expanded-mode');
 
-  // Scroll card into view smoothly
-  setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 60);
+  setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 200);
+}
+
+function deselectCard() {
+  if (!selectedId) return;
+  const el = document.querySelector(`.stack-card[data-id="${selectedId}"]`);
+  if (el) {
+    el.classList.remove('selected', 'flipped');
+    const f = el.querySelector('.card-flipper');
+    if (f) f.style.transform = '';
+  }
+  selectedId = null;
+  walletStack.classList.remove('expanded-mode');
 }
 
 function flipCard(id, e) {
-  e.stopPropagation();
-  const el = document.querySelector(`.card-item[data-id="${id}"]`);
+  if (e) e.stopPropagation();
+  const el = document.querySelector(`.stack-card[data-id="${id}"]`);
   if (!el) return;
-  const flipped = el.dataset.flipped === '1';
-  const newFlipped = !flipped;
-  const flipper = $('flip-' + id);
-  el.dataset.flipped = newFlipped ? '1' : '0';
-  flipper.style.transform = newFlipped ? 'rotateY(180deg)' : '';
+  // Auto-select if not already
+  if (selectedId !== id) {
+    if (selectedId) {
+      const prev = document.querySelector(`.stack-card[data-id="${selectedId}"]`);
+      if (prev) {
+        prev.classList.remove('selected', 'flipped');
+        const pf = prev.querySelector('.card-flipper');
+        if (pf) pf.style.transform = '';
+      }
+    }
+    el.classList.add('selected');
+    selectedId = id;
+    walletStack.classList.add('expanded-mode');
+  }
+
+  el.classList.toggle('flipped');
+  const isFlipped = el.classList.contains('flipped');
+  const flipper = el.querySelector('.card-flipper');
+  if (flipper) flipper.style.transform = isFlipped ? 'rotateY(180deg)' : '';
+
   const dots = el.querySelectorAll('.flip-hint span');
   if (dots.length === 2) {
-    dots[0].classList.toggle('fh-active', !newFlipped);
-    dots[1].classList.toggle('fh-active', newFlipped);
+    dots[0].classList.toggle('fh-active', !isFlipped);
+    dots[1].classList.toggle('fh-active', isFlipped);
   }
 }
 
 async function deleteCard(id, e) {
-  e.stopPropagation();
-  if (!confirm('Permanently delete this card?')) return;
-  const el = document.querySelector(`.card-item[data-id="${id}"]`);
+  if (e) e.stopPropagation();
+  if (!confirm('Permanently delete this item?')) return;
+  const el = document.querySelector(`.stack-card[data-id="${id}"]`);
   if (el) {
     el.style.transition = 'all 0.3s ease';
     el.style.opacity = '0';
@@ -1541,39 +1599,68 @@ async function deleteCard(id, e) {
   }
   setTimeout(async () => {
     await txDel(id);
-    if (expandedId === id) expandedId = null;
+    if (selectedId === id) selectedId = null;
     await renderWallet();
-    toast('Card deleted', 'info');
+    toast('Item deleted', 'info');
   }, 280);
 }
 
-// ================================================================
-// CLIPBOARD
-// ================================================================
-async function copyVal(text, e) {
-  e.stopPropagation();
-  if (!text || text === 'null') { toast('Nothing to copy', 'error'); return; }
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text);
-    } else {
-      const ta = Object.assign(document.createElement('textarea'), {
-        value: text, readOnly: true,
-        style: 'position:fixed;opacity:0;top:0;left:0'
-      });
-      document.body.appendChild(ta);
-      ta.select(); document.execCommand('copy');
-      ta.remove();
-    }
-    toast('Copied to clipboard', 'success');
-  } catch {
-    toast('Copy failed', 'error');
+// ============================================
+// CLIPBOARD - FIXED (issue #2)
+// ============================================
+async function copyVal(text) {
+  if (!text || text === 'null' || text === 'undefined') {
+    toast('Nothing to copy', 'error');
+    return;
   }
+  const str = String(text);
+  let success = false;
+
+  // Try modern API first (works in secure contexts only)
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(str);
+      success = true;
+    }
+  } catch (e) {
+    success = false;
+  }
+
+  // Fallback for iOS Safari / non-secure / older browsers
+  if (!success) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = str;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.top = '0';
+      ta.style.left = '0';
+      ta.style.opacity = '0';
+      ta.style.pointerEvents = 'none';
+      document.body.appendChild(ta);
+
+      // iOS specific selection
+      const range = document.createRange();
+      range.selectNodeContents(ta);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      ta.setSelectionRange(0, ta.value.length);
+
+      success = document.execCommand('copy');
+      document.body.removeChild(ta);
+    } catch (e) {
+      success = false;
+    }
+  }
+
+  if (success) toast('Copied to clipboard', 'success');
+  else toast('Copy failed — long-press the value to copy', 'error');
 }
 
-// ================================================================
+// ============================================
 // TOAST
-// ================================================================
+// ============================================
 function toast(msg, type = 'info') {
   if (toastTimer) clearTimeout(toastTimer);
   const el = $('toast');
@@ -1582,109 +1669,61 @@ function toast(msg, type = 'info') {
   toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
 }
 
-// ================================================================
-// HTML ESCAPING
-// ================================================================
+// ============================================
+// HELPERS
+// ============================================
 function escH(s) {
-  if (!s || s === 'null') return '';
-  return String(s)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+  if (s === null || s === undefined || s === 'null') return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+function escAttr(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
 }
 
-// ================================================================
-// TOUCH LOCKDOWN — iPhone PWA: no bounce, no scroll escape
-// ================================================================
-
-// Block ALL touchmove by default (prevents rubber-band on fixed shell)
+// ============================================
+// TOUCH LOCKDOWN
+// ============================================
 document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
-
-// Re-allow ONLY vertical scrolling inside the designated scroll area
 $('scrollArea').addEventListener('touchmove', e => {
-  // Allow only if there's actually scrollable content
   const el = $('scrollArea');
-  const canScrollDown = el.scrollTop < (el.scrollHeight - el.clientHeight);
-  const canScrollUp   = el.scrollTop > 0;
-
-  // Determine swipe direction
+  const canDown = el.scrollTop < (el.scrollHeight - el.clientHeight);
+  const canUp = el.scrollTop > 0;
   if (e.touches.length === 1) {
-    const touch = e.touches[0];
-    // Store first touch position
-    if (!el._touchStartY) el._touchStartY = touch.clientY;
-    const dy = touch.clientY - el._touchStartY;
-
-    // Block if: trying to scroll up at top, or down at bottom
-    if ((!canScrollUp && dy > 0) || (!canScrollDown && dy < 0)) {
-      e.preventDefault();
-    }
-    // Otherwise let it scroll naturally
+    const t = e.touches[0];
+    if (!el._touchStartY) el._touchStartY = t.clientY;
+    const dy = t.clientY - el._touchStartY;
+    if ((!canUp && dy > 0) || (!canDown && dy < 0)) e.preventDefault();
   }
 }, { passive: false });
-
-// Reset stored touch position on touchstart
 $('scrollArea').addEventListener('touchstart', e => {
-  if (e.touches.length === 1) {
-    $('scrollArea')._touchStartY = e.touches[0].clientY;
-  }
+  if (e.touches.length === 1) $('scrollArea')._touchStartY = e.touches[0].clientY;
 }, { passive: true });
 
-// Block pull-to-refresh and any gesture on the header/non-scroll areas
-document.addEventListener('touchstart', e => {
-  // nothing needed here — touchmove block covers it
-}, { passive: true });
-
-// ================================================================
-// KEYBOARD shortcuts
-// ================================================================
+// ESC + click outside to deselect
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     if (scannerEl.classList.contains('open')) closeScanner();
-    if (expandedId) {
-      const prev = document.querySelector(`.card-item[data-id="${expandedId}"]`);
-      if (prev) {
-        prev.classList.remove('expanded');
-        prev.dataset.flipped = '0';
-        const pf = $('flip-' + expandedId);
-        if (pf) pf.style.transform = '';
-        expandedId = null;
-      }
-    }
+    if (selectedId) deselectCard();
   }
 });
-
-// Tap outside expanded card to collapse
 $('scrollArea').addEventListener('click', e => {
-  if (!expandedId) return;
-  const card = e.target.closest('.card-item');
-  if (!card || String(card.dataset.id) !== String(expandedId)) {
-    const prev = document.querySelector(`.card-item[data-id="${expandedId}"]`);
-    if (prev) {
-      prev.classList.remove('expanded');
-      prev.dataset.flipped = '0';
-      const pf = $('flip-' + expandedId);
-      if (pf) pf.style.transform = '';
-    }
-    expandedId = null;
-  }
+  if (!selectedId) return;
+  if (!e.target.closest('.stack-card')) deselectCard();
 });
 
-// ================================================================
-// SERVICE WORKER
-// ================================================================
+// SW
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js')
-    .catch(err => console.warn('[Iris] SW failed:', err));
+  navigator.serviceWorker.register('./sw.js').catch(err => console.warn('[Iris] SW failed:', err));
 }
 
-// ================================================================
 // BOOT
-// ================================================================
 (async () => {
   try {
     db = await openDB();
     await renderWallet();
   } catch (err) {
-    console.error('[Iris] Boot error:', err);
+    console.error('[Iris] Boot:', err);
     toast('Startup error — refresh the app', 'error');
   }
 })();
